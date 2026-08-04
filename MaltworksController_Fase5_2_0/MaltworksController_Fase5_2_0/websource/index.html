@@ -1,0 +1,5423 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0d0c0a">
+<title>Maltworks Controller</title>
+<style>
+:root {
+--bg:#0d0c0a;
+--bg-soft:#15120f;
+--panel:#1b1713;
+--panel-2:#241e18;
+--panel-3:#2e261e;
+--line:#463a2e;
+--line-soft:#342b23;
+--text:#f5eddf;
+--muted:#a99d8b;
+--gold:#c9953f;
+--gold-light:#e6bc6a;
+--copper:#b96f45;
+--steel:#8f9aa3;
+--cool:#68b9e6;
+--heat:#ef8b5b;
+--success:#5fd08a;
+--danger:#ef7070;
+--off:#736d65;
+--shadow:0 22px 60px rgba(0,0,0,.34);
+--radius-xl:24px;
+--radius-lg:18px;
+--radius-md:13px;
+}
+* { box-sizing:border-box; }
+html {
+-webkit-tap-highlight-color:transparent;
+scroll-behavior:smooth;
+}
+body {
+min-height:100vh;
+margin:0;
+color:var(--text);
+background:
+radial-gradient(circle at 12% -10%, rgba(201,149,63,.18), transparent 32%),
+radial-gradient(circle at 100% 10%, rgba(185,111,69,.10), transparent 25%),
+linear-gradient(180deg,#12100d 0,var(--bg) 56%);
+font-family:Inter,Segoe UI,Arial,Helvetica,sans-serif;
+}
+button,input { font:inherit; }
+.app {
+width:min(94%,1120px);
+margin:0 auto;
+padding:24px 0 48px;
+}
+.topbar {
+display:flex;
+align-items:center;
+justify-content:space-between;
+gap:18px;
+margin-bottom:20px;
+}
+.brand {
+display:flex;
+align-items:center;
+gap:13px;
+min-width:0;
+}
+.brand-mark {
+position:relative;
+display:grid;
+place-items:center;
+width:52px;
+height:52px;
+flex:0 0 auto;
+color:var(--gold-light);
+background:
+linear-gradient(145deg,var(--panel-3),var(--panel));
+border:1px solid #5c4a38;
+border-radius:50%;
+box-shadow:
+inset 0 1px 0 rgba(255,255,255,.05),
+0 10px 26px rgba(0,0,0,.28);
+}
+.brand-mark::before,
+.brand-mark::after {
+position:absolute;
+width:5px;
+height:5px;
+background:var(--gold);
+border-radius:50%;
+content:"";
+}
+.brand-mark::before { top:7px; }
+.brand-mark::after { bottom:7px; }
+.brand-mark svg {
+width:29px;
+height:29px;
+}
+.brand h1 {
+margin:0;
+color:var(--gold-light);
+font-size:clamp(21px,4vw,27px);
+letter-spacing:1.8px;
+line-height:1;
+}
+.brand p {
+margin:6px 0 0;
+color:var(--muted);
+font-size:11px;
+letter-spacing:1.1px;
+text-transform:uppercase;
+}
+.system-badge {
+display:flex;
+align-items:center;
+gap:9px;
+padding:9px 12px;
+color:var(--muted);
+background:rgba(27,23,19,.78);
+border:1px solid var(--line);
+border-radius:999px;
+font-size:12px;
+white-space:nowrap;
+}
+.connection-dot {
+width:9px;
+height:9px;
+background:var(--success);
+border-radius:50%;
+box-shadow:0 0 0 5px rgba(95,208,138,.11);
+transition:.25s ease;
+}
+.connection-dot.offline {
+background:var(--danger);
+box-shadow:0 0 0 5px rgba(239,112,112,.11);
+}
+.main-tabs {
+display:flex;
+gap:8px;
+overflow-x:auto;
+margin-bottom:18px;
+padding:5px;
+background:rgba(27,23,19,.72);
+border:1px solid var(--line);
+border-radius:15px;
+scrollbar-width:none;
+}
+.main-tabs::-webkit-scrollbar {
+display:none;
+}
+.tab-button {
+width:auto;
+flex:0 0 auto;
+padding:10px 14px;
+color:var(--muted);
+background:transparent;
+border:1px solid transparent;
+border-radius:10px;
+font-size:11px;
+font-weight:800;
+letter-spacing:.55px;
+cursor:pointer;
+}
+.tab-button.active {
+color:#1b140b;
+background:linear-gradient(135deg,var(--gold-light),var(--gold));
+}
+.page-card-hidden {
+display:none !important;
+}
+.layout.single-page {
+grid-template-columns:1fr;
+}
+.layout.single-page .stack.empty-stack {
+display:none;
+}
+.recipe-grid {
+display:grid;
+grid-template-columns:repeat(2,minmax(0,1fr));
+gap:12px;
+}
+.recipe-card {
+padding:15px;
+background:rgba(11,10,8,.42);
+border:1px solid var(--line-soft);
+border-radius:var(--radius-lg);
+}
+.recipe-card.empty {
+border-style:dashed;
+}
+.recipe-card-head {
+display:flex;
+align-items:center;
+justify-content:space-between;
+gap:10px;
+margin-bottom:10px;
+}
+.recipe-card-title {
+color:var(--text);
+font-size:14px;
+font-weight:800;
+}
+.recipe-slot {
+color:var(--muted);
+font-size:10px;
+text-transform:uppercase;
+}
+.recipe-stage-preview {
+display:flex;
+flex-direction:column;
+gap:5px;
+min-height:55px;
+margin-bottom:12px;
+color:var(--muted);
+font-size:11px;
+}
+.recipe-card-actions {
+display:grid;
+grid-template-columns:repeat(2,minmax(0,1fr));
+gap:7px;
+}
+.recipe-card-actions button {
+min-height:38px;
+padding:8px;
+font-size:10px;
+}
+.danger-button {
+color:var(--danger);
+background:transparent;
+border:1px solid rgba(239,112,112,.32);
+}
+.layout {
+display:grid;
+grid-template-columns:minmax(0,1.45fr) minmax(310px,.55fr);
+gap:18px;
+align-items:start;
+}
+.stack {
+display:flex;
+flex-direction:column;
+gap:18px;
+}
+.card {
+position:relative;
+overflow:hidden;
+padding:21px;
+background:
+linear-gradient(145deg,rgba(37,31,25,.97),rgba(24,20,16,.99));
+border:1px solid var(--line);
+border-radius:var(--radius-xl);
+box-shadow:var(--shadow);
+}
+.card::before {
+position:absolute;
+inset:0;
+border-radius:inherit;
+box-shadow:inset 0 1px 0 rgba(255,255,255,.035);
+content:"";
+pointer-events:none;
+}
+.section-head {
+position:relative;
+z-index:1;
+display:flex;
+align-items:center;
+justify-content:space-between;
+gap:12px;
+margin-bottom:18px;
+}
+.section-title {
+margin:0;
+color:var(--muted);
+font-size:11px;
+letter-spacing:1.25px;
+text-transform:uppercase;
+}
+.mini-icon {
+display:grid;
+place-items:center;
+width:33px;
+height:33px;
+color:var(--gold-light);
+background:rgba(201,149,63,.08);
+border:1px solid rgba(201,149,63,.2);
+border-radius:10px;
+}
+.mini-icon svg {
+width:18px;
+height:18px;
+}
+/* Hero */
+.hero {
+min-height:362px;
+isolation:isolate;
+}
+.hero::after {
+position:absolute;
+right:-80px;
+bottom:-120px;
+width:330px;
+height:330px;
+background:radial-gradient(circle,rgba(201,149,63,.14),transparent 67%);
+content:"";
+pointer-events:none;
+z-index:-1;
+}
+.sensor-row {
+position:relative;
+z-index:1;
+display:flex;
+align-items:center;
+justify-content:space-between;
+gap:12px;
+margin-bottom:2px;
+}
+.sensor-status {
+display:flex;
+align-items:center;
+gap:8px;
+color:var(--muted);
+font-size:12px;
+}
+.sensor-led {
+width:9px;
+height:9px;
+background:var(--success);
+border-radius:50%;
+box-shadow:0 0 12px rgba(95,208,138,.68);
+}
+.sensor-led.error {
+background:var(--danger);
+box-shadow:0 0 12px rgba(239,112,112,.68);
+}
+.temperature-zone {
+position:relative;
+z-index:1;
+display:flex;
+align-items:center;
+justify-content:center;
+min-height:180px;
+padding:10px 0 4px;
+}
+.temperature-number {
+color:var(--text);
+font-size:clamp(78px,13vw,124px);
+font-weight:750;
+line-height:.84;
+letter-spacing:-7px;
+text-shadow:0 9px 28px rgba(0,0,0,.28);
+}
+.temperature-number.error {
+color:var(--danger);
+font-size:clamp(55px,9vw,86px);
+letter-spacing:-2px;
+}
+.temperature-unit {
+align-self:flex-end;
+margin:0 0 21px 12px;
+color:var(--gold-light);
+font-size:29px;
+font-weight:700;
+}
+.state-strip {
+position:relative;
+z-index:1;
+display:grid;
+grid-template-columns:52px minmax(0,1fr) auto;
+align-items:center;
+gap:14px;
+padding:14px 15px;
+background:rgba(12,11,9,.5);
+border:1px solid var(--line-soft);
+border-radius:var(--radius-lg);
+}
+.state-orb {
+display:grid;
+place-items:center;
+width:48px;
+height:48px;
+color:var(--off);
+background:var(--panel-2);
+border:1px solid var(--line-soft);
+border-radius:50%;
+transition:.25s ease;
+}
+.state-orb svg {
+width:26px;
+height:26px;
+}
+.state-icon {
+display:none;
+width:26px;
+height:26px;
+}
+.state-icon.active {
+display:block;
+}
+.state-orb.cooling {
+color:var(--cool);
+background:rgba(104,185,230,.11);
+border-color:rgba(104,185,230,.28);
+box-shadow:0 0 30px rgba(104,185,230,.12);
+}
+.state-orb.heating {
+color:var(--heat);
+background:rgba(239,139,91,.11);
+border-color:rgba(239,139,91,.28);
+box-shadow:0 0 30px rgba(239,139,91,.12);
+}
+.state-orb.waiting {
+color:var(--gold-light);
+background:rgba(230,188,106,.10);
+border-color:rgba(230,188,106,.28);
+}
+.state-orb.error {
+color:var(--danger);
+background:rgba(239,112,112,.10);
+border-color:rgba(239,112,112,.28);
+}
+.state-orb.cooling .icon-snow {
+animation:snowSpin 3.8s linear infinite;
+}
+.state-orb.heating .icon-flame {
+animation:flamePulse 1.1s ease-in-out infinite alternate;
+transform-origin:center bottom;
+}
+.state-orb.waiting .icon-gear {
+animation:gearSpin 2.8s linear infinite;
+transform-origin:center;
+}
+.state-copy {
+min-width:0;
+}
+.state-copy small {
+display:block;
+margin-bottom:5px;
+color:var(--muted);
+font-size:10px;
+letter-spacing:.9px;
+text-transform:uppercase;
+}
+.state-copy strong {
+display:block;
+overflow:hidden;
+color:var(--text);
+font-size:19px;
+text-overflow:ellipsis;
+white-space:nowrap;
+}
+.state-mode {
+padding:7px 10px;
+color:var(--muted);
+background:var(--panel-2);
+border:1px solid var(--line-soft);
+border-radius:999px;
+font-size:10px;
+letter-spacing:.8px;
+text-transform:uppercase;
+}
+.state-mode.manual {
+color:var(--steel);
+border-color:rgba(143,154,163,.30);
+background:rgba(143,154,163,.08);
+}
+.state-mode.automatic {
+color:var(--gold-light);
+border-color:rgba(230,188,106,.30);
+background:rgba(230,188,106,.08);
+}
+.hero-mode-detail {
+position:relative;
+z-index:1;
+display:flex;
+align-items:center;
+justify-content:space-between;
+gap:12px;
+margin-top:11px;
+padding:11px 13px;
+background:rgba(12,11,9,.38);
+border:1px solid var(--line-soft);
+border-radius:var(--radius-md);
+}
+.hero-mode-detail span {
+color:var(--muted);
+font-size:10px;
+letter-spacing:.7px;
+text-transform:uppercase;
+}
+.hero-mode-detail strong {
+overflow:hidden;
+color:var(--text);
+font-size:13px;
+text-align:right;
+text-overflow:ellipsis;
+white-space:nowrap;
+}
+.protection {
+position:relative;
+z-index:1;
+margin-top:11px;
+padding:11px 13px;
+color:var(--gold-light);
+background:rgba(201,149,63,.07);
+border:1px solid rgba(201,149,63,.23);
+border-radius:var(--radius-md);
+font-size:13px;
+text-align:center;
+}
+/* Metrics */
+.metrics {
+display:grid;
+grid-template-columns:repeat(3,minmax(0,1fr));
+gap:11px;
+}
+.metric {
+padding:15px;
+background:rgba(11,10,8,.42);
+border:1px solid var(--line-soft);
+border-radius:var(--radius-lg);
+}
+.metric-label {
+display:block;
+margin-bottom:8px;
+color:var(--muted);
+font-size:10px;
+letter-spacing:.75px;
+text-transform:uppercase;
+}
+.metric-value {
+color:var(--text);
+font-size:25px;
+font-weight:700;
+}
+.metric-unit {
+margin-left:3px;
+color:var(--muted);
+font-size:12px;
+}
+/* Relays */
+.relay-grid {
+display:grid;
+grid-template-columns:repeat(2,minmax(0,1fr));
+gap:12px;
+}
+.relay-card {
+position:relative;
+padding:16px;
+background:rgba(11,10,8,.42);
+border:1px solid var(--line-soft);
+border-radius:var(--radius-lg);
+transition:.25s ease;
+}
+.relay-card.active {
+transform:translateY(-2px);
+}
+.relay-card.cooling.active {
+border-color:rgba(104,185,230,.65);
+box-shadow:0 10px 28px rgba(104,185,230,.08);
+}
+.relay-card.heating.active {
+border-color:rgba(239,139,91,.65);
+box-shadow:0 10px 28px rgba(239,139,91,.08);
+}
+.relay-head {
+display:flex;
+align-items:center;
+justify-content:space-between;
+margin-bottom:15px;
+}
+.relay-icon {
+width:29px;
+height:29px;
+color:var(--off);
+}
+.relay-card.cooling.active .relay-icon { color:var(--cool); }
+.relay-card.heating.active .relay-icon { color:var(--heat); }
+.relay-light {
+width:11px;
+height:11px;
+background:var(--off);
+border:2px solid rgba(255,255,255,.06);
+border-radius:50%;
+}
+.relay-card.cooling.active .relay-light {
+background:var(--cool);
+box-shadow:0 0 14px rgba(104,185,230,.9);
+animation:relayPulse 1.6s ease-in-out infinite;
+}
+.relay-card.heating.active .relay-light {
+background:var(--heat);
+box-shadow:0 0 14px rgba(239,139,91,.9);
+animation:relayPulse 1.6s ease-in-out infinite;
+}
+.relay-name {
+display:block;
+color:var(--muted);
+font-size:11px;
+letter-spacing:.65px;
+text-transform:uppercase;
+}
+.relay-state {
+display:block;
+margin-top:5px;
+color:var(--off);
+font-size:17px;
+font-weight:700;
+}
+.relay-card.cooling.active .relay-state { color:var(--cool); }
+.relay-card.heating.active .relay-state { color:var(--heat); }
+/* Chart */
+.chart-wrapper {
+position:relative;
+width:100%;
+height:315px;
+}
+#temperatureChart {
+display:block;
+width:100%;
+height:100%;
+}
+.empty-chart {
+position:absolute;
+inset:0;
+display:flex;
+align-items:center;
+justify-content:center;
+color:var(--muted);
+font-size:13px;
+pointer-events:none;
+}
+.chart-footer {
+display:flex;
+align-items:center;
+justify-content:space-between;
+gap:10px;
+margin-top:11px;
+color:var(--muted);
+font-size:11px;
+}
+.chart-toolbar {
+display:flex;
+align-items:center;
+justify-content:space-between;
+gap:12px;
+margin-bottom:13px;
+}
+.range-controls {
+display:flex;
+flex-wrap:wrap;
+gap:7px;
+}
+.range-button {
+width:auto;
+min-width:48px;
+padding:8px 10px;
+color:var(--muted);
+background:rgba(11,10,8,.42);
+border:1px solid var(--line-soft);
+border-radius:9px;
+font-size:11px;
+font-weight:700;
+cursor:pointer;
+transition:.18s ease;
+}
+.range-button:hover {
+color:var(--text);
+border-color:var(--line);
+}
+.range-button.active {
+color:#1b140b;
+background:linear-gradient(135deg,var(--gold-light),var(--gold));
+border-color:transparent;
+}
+.range-label {
+color:var(--muted);
+font-size:11px;
+white-space:nowrap;
+}
+.legend {
+display:flex;
+flex-wrap:wrap;
+gap:14px;
+}
+.legend-item {
+display:flex;
+align-items:center;
+gap:6px;
+}
+.legend-line {
+width:20px;
+height:3px;
+border-radius:4px;
+}
+.legend-temp { background:var(--gold-light); }
+.legend-sp { background:var(--cool); }
+/* Settings */
+.form-group { margin-bottom:17px; }
+.label-row {
+display:flex;
+justify-content:space-between;
+gap:12px;
+margin-bottom:8px;
+}
+label {
+color:var(--text);
+font-size:13px;
+font-weight:650;
+}
+.limit {
+color:var(--muted);
+font-size:10px;
+}
+.input-wrap { position:relative; }
+input {
+width:100%;
+padding:13px 46px 13px 13px;
+color:var(--text);
+background:rgba(11,10,8,.48);
+border:1px solid var(--line-soft);
+border-radius:11px;
+font-size:18px;
+font-weight:650;
+outline:none;
+transition:.2s ease;
+}
+input:focus {
+border-color:var(--gold);
+box-shadow:0 0 0 3px rgba(201,149,63,.10);
+}
+.input-unit {
+position:absolute;
+top:50%;
+right:13px;
+color:var(--muted);
+font-size:12px;
+transform:translateY(-50%);
+pointer-events:none;
+}
+.save-button {
+display:flex;
+align-items:center;
+justify-content:center;
+gap:8px;
+width:100%;
+min-height:48px;
+padding:13px;
+color:#1b140b;
+background:linear-gradient(135deg,var(--gold-light),var(--gold));
+border:0;
+border-radius:11px;
+font-size:13px;
+font-weight:800;
+letter-spacing:.45px;
+cursor:pointer;
+transition:.18s ease;
+}
+.save-button:hover { filter:brightness(1.05); }
+.save-button:active { transform:scale(.986); }
+.save-button:disabled { opacity:.66; cursor:wait; }
+.save-button svg {
+width:18px;
+height:18px;
+}
+.message {
+display:none;
+margin-top:11px;
+padding:10px;
+border-radius:10px;
+font-size:12px;
+text-align:center;
+}
+.message.success {
+display:block;
+color:var(--success);
+background:rgba(95,208,138,.06);
+border:1px solid rgba(95,208,138,.25);
+}
+.message.error {
+display:block;
+color:var(--danger);
+background:rgba(239,112,112,.06);
+border:1px solid rgba(239,112,112,.25);
+}
+/* System */
+.wifi-status-box {
+margin-bottom:16px;
+padding:13px;
+background:rgba(11,10,8,.42);
+border:1px solid var(--line-soft);
+border-radius:var(--radius-md);
+}
+.wifi-status-line {
+display:flex;
+align-items:center;
+justify-content:space-between;
+gap:12px;
+margin-bottom:8px;
+font-size:12px;
+}
+.wifi-status-line:last-child {
+margin-bottom:0;
+}
+.wifi-status-line span:first-child {
+color:var(--muted);
+}
+.wifi-connected {
+color:var(--success);
+}
+.wifi-disconnected {
+color:var(--gold-light);
+}
+.secondary-button {
+width:100%;
+margin-top:9px;
+padding:11px;
+color:var(--muted);
+background:transparent;
+border:1px solid var(--line);
+border-radius:10px;
+font-size:12px;
+font-weight:700;
+cursor:pointer;
+}
+.secondary-button:hover {
+color:var(--text);
+border-color:var(--gold);
+}
+.firmware-file {
+display:block;
+width:100%;
+padding:11px;
+color:var(--muted);
+background:rgba(11,10,8,.42);
+border:1px solid var(--line-soft);
+border-radius:10px;
+font-size:12px;
+}
+.firmware-file::file-selector-button {
+margin-right:10px;
+padding:8px 10px;
+color:#1b140b;
+background:var(--gold-light);
+border:0;
+border-radius:8px;
+font-weight:700;
+cursor:pointer;
+}
+.progress-shell {
+overflow:hidden;
+width:100%;
+height:12px;
+margin-top:13px;
+background:rgba(11,10,8,.55);
+border:1px solid var(--line-soft);
+border-radius:999px;
+}
+.progress-bar {
+width:0%;
+height:100%;
+background:linear-gradient(
+90deg,
+var(--gold),
+var(--gold-light)
+);
+transition:width .15s linear;
+}
+.progress-text {
+margin-top:7px;
+color:var(--muted);
+font-size:11px;
+text-align:center;
+}
+.firmware-note {
+margin-top:12px;
+color:var(--muted);
+font-size:11px;
+line-height:1.5;
+}
+.firmware-inspection {
+display:none;
+margin-top:13px;
+padding:13px;
+background:rgba(11,10,8,.42);
+border:1px solid var(--line-soft);
+border-radius:var(--radius-md);
+}
+.firmware-inspection.visible {
+display:block;
+}
+.firmware-inspection-row {
+display:flex;
+align-items:center;
+justify-content:space-between;
+gap:12px;
+margin-bottom:8px;
+font-size:12px;
+}
+.firmware-inspection-row:last-child {
+margin-bottom:0;
+}
+.firmware-inspection-row span:first-child {
+color:var(--muted);
+}
+.compatibility-ok {
+color:var(--success);
+}
+.compatibility-warning {
+color:var(--gold-light);
+}
+.compatibility-error {
+color:var(--danger);
+}
+.dashboard-profile-grid {
+display:grid;
+grid-template-columns:repeat(4,minmax(0,1fr));
+gap:10px;
+}
+.dashboard-profile-item {
+padding:12px;
+background:rgba(11,10,8,.42);
+border:1px solid var(--line-soft);
+border-radius:var(--radius-md);
+text-align:center;
+}
+.dashboard-profile-item span {
+display:block;
+color:var(--muted);
+font-size:9px;
+letter-spacing:.5px;
+text-transform:uppercase;
+}
+.dashboard-profile-item strong {
+display:block;
+overflow:hidden;
+margin-top:6px;
+font-size:14px;
+text-overflow:ellipsis;
+white-space:nowrap;
+}
+.dashboard-profile-footer {
+display:flex;
+justify-content:space-between;
+gap:10px;
+margin-top:8px;
+color:var(--muted);
+font-size:11px;
+}
+.profile-summary {
+display:grid;
+grid-template-columns:repeat(3,minmax(0,1fr));
+gap:10px;
+margin-bottom:14px;
+}
+.profile-summary-item {
+padding:12px;
+background:rgba(11,10,8,.42);
+border:1px solid var(--line-soft);
+border-radius:var(--radius-md);
+text-align:center;
+}
+.profile-summary-item span {
+display:block;
+color:var(--muted);
+font-size:10px;
+text-transform:uppercase;
+}
+.profile-summary-item strong {
+display:block;
+margin-top:6px;
+font-size:16px;
+}
+.profile-progress-shell {
+overflow:hidden;
+height:12px;
+margin:12px 0 8px;
+background:rgba(11,10,8,.55);
+border:1px solid var(--line-soft);
+border-radius:999px;
+}
+.profile-progress-bar {
+width:0%;
+height:100%;
+background:linear-gradient(90deg,var(--copper),var(--gold-light));
+transition:width .5s ease;
+}
+.profile-progress-text {
+color:var(--muted);
+font-size:11px;
+text-align:center;
+}
+.profile-actions {
+display:grid;
+grid-template-columns:repeat(2,minmax(0,1fr));
+gap:8px;
+margin-top:12px;
+}
+.profile-stage-list {
+display:flex;
+flex-direction:column;
+gap:9px;
+margin-top:14px;
+}
+.profile-stage {
+padding:12px;
+background:rgba(11,10,8,.42);
+border:1px solid var(--line-soft);
+border-radius:var(--radius-md);
+}
+.profile-stage.current {
+border-color:var(--gold);
+box-shadow:0 0 0 2px rgba(201,149,63,.08);
+}
+.profile-stage-head {
+display:flex;
+align-items:center;
+justify-content:space-between;
+gap:10px;
+margin-bottom:9px;
+}
+.profile-stage-title {
+color:var(--text);
+font-size:12px;
+font-weight:750;
+}
+.profile-stage-remove {
+width:auto;
+padding:5px 8px;
+color:var(--danger);
+background:transparent;
+border:1px solid rgba(239,112,112,.3);
+border-radius:8px;
+font-size:10px;
+cursor:pointer;
+}
+.profile-stage-grid {
+display:grid;
+grid-template-columns:repeat(2,minmax(0,1fr));
+gap:9px;
+}
+.duration-control {
+display:grid;
+grid-template-columns:minmax(0,1fr) 105px;
+gap:7px;
+}
+.duration-unit-select {
+width:100%;
+padding:13px 10px;
+color:var(--text);
+background:rgba(11,10,8,.48);
+border:1px solid var(--line-soft);
+border-radius:11px;
+font-size:13px;
+font-weight:650;
+outline:none;
+}
+.duration-unit-select:focus {
+border-color:var(--gold);
+box-shadow:0 0 0 3px rgba(201,149,63,.10);
+}
+.duration-help {
+display:block;
+margin-top:6px;
+color:var(--muted);
+font-size:10px;
+line-height:1.35;
+}
+.profile-editor-actions {
+display:grid;
+grid-template-columns:repeat(2,minmax(0,1fr));
+gap:8px;
+margin-top:10px;
+}
+.alarm-dashboard {
+display:flex;
+align-items:center;
+justify-content:space-between;
+gap:14px;
+padding:14px;
+background:rgba(95,208,138,.06);
+border:1px solid rgba(95,208,138,.25);
+border-radius:var(--radius-lg);
+}
+.alarm-dashboard.active {
+background:rgba(239,112,112,.08);
+border-color:rgba(239,112,112,.40);
+}
+.alarm-dashboard-copy {
+min-width:0;
+}
+.alarm-dashboard-copy span {
+display:block;
+color:var(--muted);
+font-size:10px;
+letter-spacing:.7px;
+text-transform:uppercase;
+}
+.alarm-dashboard-copy strong {
+display:block;
+overflow:hidden;
+margin-top:6px;
+color:var(--success);
+font-size:16px;
+text-overflow:ellipsis;
+white-space:nowrap;
+}
+.alarm-dashboard.active .alarm-dashboard-copy strong {
+color:var(--danger);
+}
+.alarm-count-badge {
+display:grid;
+place-items:center;
+min-width:46px;
+height:46px;
+padding:0 10px;
+color:var(--success);
+background:rgba(95,208,138,.08);
+border:1px solid rgba(95,208,138,.25);
+border-radius:50%;
+font-size:18px;
+font-weight:800;
+}
+.alarm-dashboard.active .alarm-count-badge {
+color:var(--danger);
+background:rgba(239,112,112,.08);
+border-color:rgba(239,112,112,.35);
+}
+.alarm-list {
+display:flex;
+flex-direction:column;
+gap:9px;
+margin-top:14px;
+}
+.alarm-item {
+display:flex;
+align-items:center;
+justify-content:space-between;
+gap:12px;
+padding:12px;
+background:rgba(11,10,8,.42);
+border:1px solid var(--line-soft);
+border-radius:var(--radius-md);
+}
+.alarm-item.active {
+border-color:rgba(239,112,112,.48);
+}
+.alarm-item-copy strong {
+display:block;
+font-size:13px;
+}
+.alarm-item-copy span {
+display:block;
+margin-top:4px;
+color:var(--muted);
+font-size:10px;
+}
+.alarm-state {
+color:var(--success);
+font-size:10px;
+font-weight:800;
+}
+.alarm-item.active .alarm-state {
+color:var(--danger);
+}
+.toggle-row {
+display:flex;
+align-items:center;
+justify-content:space-between;
+gap:12px;
+padding:10px 0;
+border-bottom:1px solid var(--line-soft);
+}
+.toggle-row:last-child {
+border-bottom:0;
+}
+.toggle-row label {
+font-size:12px;
+}
+.toggle-row input[type="checkbox"] {
+width:20px;
+height:20px;
+accent-color:var(--gold);
+}
+.alarm-config-grid {
+display:grid;
+grid-template-columns:repeat(2,minmax(0,1fr));
+gap:10px;
+margin-top:14px;
+}
+@media(max-width:520px){
+.alarm-config-grid{grid-template-columns:1fr;}
+}
+
+.event-toolbar {
+display:flex;
+align-items:center;
+justify-content:space-between;
+gap:10px;
+margin-bottom:14px;
+}
+.event-filter {
+width:auto;
+min-width:150px;
+padding:10px;
+color:var(--text);
+background:rgba(11,10,8,.48);
+border:1px solid var(--line-soft);
+border-radius:10px;
+}
+.event-list {
+display:flex;
+flex-direction:column;
+gap:9px;
+}
+.event-item {
+display:grid;
+grid-template-columns:92px minmax(0,1fr);
+gap:12px;
+padding:12px;
+background:rgba(11,10,8,.42);
+border:1px solid var(--line-soft);
+border-radius:var(--radius-md);
+}
+.event-meta {
+display:flex;
+flex-direction:column;
+gap:5px;
+}
+.event-category {
+color:var(--gold-light);
+font-size:10px;
+font-weight:800;
+text-transform:uppercase;
+}
+.event-date {
+color:var(--muted);
+font-size:9px;
+line-height:1.35;
+}
+.event-message {
+align-self:center;
+color:var(--text);
+font-size:12px;
+line-height:1.45;
+}
+.event-empty {
+padding:28px;
+color:var(--muted);
+text-align:center;
+}
+@media(max-width:520px){
+.event-item{grid-template-columns:1fr;}
+.event-toolbar{align-items:stretch;flex-direction:column;}
+.event-filter{width:100%;}
+}
+
+.calibration-grid {
+display:grid;
+grid-template-columns:repeat(2,minmax(0,1fr));
+gap:14px;
+}
+.calibration-sensor {
+padding:15px;
+background:rgba(11,10,8,.42);
+border:1px solid var(--line-soft);
+border-radius:var(--radius-lg);
+}
+.calibration-sensor-head {
+display:flex;
+align-items:center;
+justify-content:space-between;
+gap:10px;
+margin-bottom:13px;
+}
+.calibration-sensor-head strong {
+font-size:14px;
+}
+.calibration-status {
+color:var(--muted);
+font-size:10px;
+font-weight:800;
+}
+.calibration-status.connected {
+color:var(--success);
+}
+.calibration-readings {
+display:grid;
+grid-template-columns:repeat(2,minmax(0,1fr));
+gap:8px;
+margin-bottom:13px;
+}
+.calibration-reading {
+padding:10px;
+background:rgba(19,17,14,.65);
+border:1px solid var(--line-soft);
+border-radius:10px;
+text-align:center;
+}
+.calibration-reading span {
+display:block;
+color:var(--muted);
+font-size:9px;
+text-transform:uppercase;
+}
+.calibration-reading strong {
+display:block;
+margin-top:5px;
+font-size:16px;
+}
+.calibration-equation {
+margin-top:9px;
+color:var(--muted);
+font-size:10px;
+line-height:1.4;
+text-align:center;
+}
+.calibration-note {
+margin-top:14px;
+padding:12px;
+color:var(--muted);
+background:rgba(201,149,63,.06);
+border:1px solid rgba(201,149,63,.20);
+border-radius:var(--radius-md);
+font-size:11px;
+line-height:1.55;
+}
+@media(max-width:700px){
+.calibration-grid{grid-template-columns:1fr;}
+}
+
+.clock-display {
+padding:18px 12px;
+background:rgba(11,10,8,.42);
+border:1px solid var(--line-soft);
+border-radius:var(--radius-lg);
+text-align:center;
+}
+.clock-time {
+display:block;
+color:var(--gold-light);
+font-size:34px;
+font-weight:750;
+letter-spacing:1px;
+}
+.clock-date {
+display:block;
+margin-top:7px;
+color:var(--text);
+font-size:15px;
+font-weight:650;
+}
+.clock-status-row {
+display:flex;
+align-items:center;
+justify-content:center;
+gap:8px;
+margin-top:12px;
+color:var(--muted);
+font-size:11px;
+}
+.clock-led {
+width:9px;
+height:9px;
+background:var(--gold-light);
+border-radius:50%;
+box-shadow:0 0 11px rgba(230,188,106,.55);
+}
+.clock-led.synchronized {
+background:var(--success);
+box-shadow:0 0 11px rgba(95,208,138,.65);
+}
+.clock-detail {
+margin-top:13px;
+padding-top:12px;
+border-top:1px solid var(--line-soft);
+color:var(--muted);
+font-size:11px;
+line-height:1.5;
+text-align:center;
+}
+.info-list {
+display:flex;
+flex-direction:column;
+}
+.info-row {
+display:flex;
+align-items:center;
+justify-content:space-between;
+gap:12px;
+padding:11px 0;
+border-bottom:1px solid var(--line-soft);
+font-size:12px;
+}
+.info-row:last-child { border-bottom:0; }
+.info-row span:first-child {
+color:var(--muted);
+}
+.info-row strong {
+overflow:hidden;
+text-align:right;
+text-overflow:ellipsis;
+white-space:nowrap;
+}
+.footer {
+margin-top:25px;
+color:var(--muted);
+font-size:10px;
+letter-spacing:.75px;
+text-align:center;
+text-transform:uppercase;
+}
+@keyframes snowSpin {
+to { transform:rotate(360deg); }
+}
+@keyframes gearSpin {
+to { transform:rotate(360deg); }
+}
+@keyframes flamePulse {
+from { transform:scale(.93) translateY(1px); filter:drop-shadow(0 0 0 rgba(239,139,91,0)); }
+to { transform:scale(1.08) translateY(-1px); filter:drop-shadow(0 0 7px rgba(239,139,91,.55)); }
+}
+@keyframes relayPulse {
+0%,100% { opacity:.68; }
+50% { opacity:1; }
+}
+@media(max-width:830px) {
+.layout { grid-template-columns:1fr; }
+}
+@media(max-width:520px) {
+.app { width:min(94%,520px); padding-top:18px; }
+.system-badge span:last-child { display:none; }
+.brand-mark { width:46px; height:46px; }
+.card { padding:17px; border-radius:20px; }
+.hero { min-height:340px; }
+.temperature-number { letter-spacing:-5px; }
+.state-strip { grid-template-columns:48px minmax(0,1fr); }
+.state-mode { display:none; }
+.metrics { grid-template-columns:repeat(2,minmax(0,1fr)); }
+.metric:last-child { grid-column:1/-1; }
+.chart-wrapper { height:275px; }
+.chart-footer { align-items:flex-start; flex-direction:column; }
+.recipe-grid { grid-template-columns:1fr; }
+.dashboard-profile-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
+</style>
+</head>
+<body>
+<main class="app">
+<header class="topbar">
+<div class="brand">
+<div class="brand-mark">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+<circle cx="12" cy="12" r="3"></circle>
+<path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.05.05-2.83 2.83-.05-.05A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6 1.7 1.7 0 0 0-.4 1.1V21h-4v-.08A1.7 1.7 0 0 0 8.6 19.4a1.7 1.7 0 0 0-1.88.34l-.05.05-2.83-2.83.05-.05A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.6-1 1.7 1.7 0 0 0-1.1-.4H3v-4h.08A1.7 1.7 0 0 0 4.6 8.6a1.7 1.7 0 0 0-.34-1.88l-.05-.05 2.83-2.83.05.05A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-.6 1.7 1.7 0 0 0 .4-1.1V3h4v.08A1.7 1.7 0 0 0 15.4 4.6a1.7 1.7 0 0 0 1.88-.34l.05-.05 2.83 2.83-.05.05A1.7 1.7 0 0 0 19.4 9c.17.37.38.7.6 1 .3.38.67.6 1.1.6H21v4h-.08A1.7 1.7 0 0 0 19.4 15Z"></path>
+</svg>
+</div>
+<div>
+<h1>MALTWORKS</h1>
+<p>Fermentation Controller · v5.2.0</p>
+</div>
+</div>
+<div class="system-badge">
+<span id="connectionDot" class="connection-dot"></span>
+<span id="connectionText">Conectado</span>
+</div>
+</header>
+<nav class="main-tabs" aria-label="Seções do controlador">
+<button class="tab-button active" type="button" data-page="dashboard">
+DASHBOARD
+</button>
+<button class="tab-button" type="button" data-page="manual">
+MODO MANUAL
+</button>
+<button class="tab-button" type="button" data-page="profiles">
+PERFIS
+</button>
+<button class="tab-button" type="button" data-page="library">
+RECEITAS
+</button>
+<button class="tab-button" type="button" data-page="alarms">
+ALARMES
+</button>
+<button class="tab-button" type="button" data-page="events">
+EVENTOS
+</button>
+<button class="tab-button" type="button" data-page="calibration">
+CALIBRAÇÃO
+</button>
+<button class="tab-button" type="button" data-page="cloud">
+NUVEM
+</button>
+<button class="tab-button" type="button" data-page="system">
+SISTEMA
+</button>
+</nav>
+<div id="mainLayout" class="layout">
+<div class="stack">
+<section class="card hero" data-page="dashboard">
+<div class="sensor-row">
+<h2 class="section-title">Temperatura da geladeira</h2>
+<div class="sensor-status">
+<span id="sensorLed" class="sensor-led"></span>
+<span id="sensorText">Sensor conectado</span>
+</div>
+</div>
+<div class="temperature-zone">
+<span id="temperatureValue" class="temperature-number">--.-</span>
+<span class="temperature-unit">°C</span>
+</div>
+<div class="state-strip">
+<div id="stateOrb" class="state-orb">
+<svg id="iconIdle" class="state-icon active" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+<circle cx="12" cy="12" r="8"></circle>
+<path d="M12 8v4l2.5 2"></path>
+</svg>
+<svg id="iconSnow" class="state-icon icon-snow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+<path d="M12 2v20M4.9 4.9l14.2 14.2M2 12h20M4.9 19.1 19.1 4.9M12 2l-2 2M12 2l2 2M12 22l-2-2M12 22l2-2"></path>
+</svg>
+<svg id="iconFlame" class="state-icon icon-flame" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M12 22c4.4 0 7-3 7-7.1 0-3.2-1.8-5.3-4.8-8.3.2 2.1-.7 3.7-2.2 4.8.1-3.4-1.7-6.2-4.3-8.4.2 3.4-2.7 5.7-2.7 9.7C5 18.1 7.9 22 12 22Z"></path>
+</svg>
+<svg id="iconGear" class="state-icon icon-gear" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+<circle cx="12" cy="12" r="3"></circle>
+<path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.05.05-2.83 2.83-.05-.05A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6A1.7 1.7 0 0 0 13.6 21h-3.2A1.7 1.7 0 0 0 9 19.4a1.7 1.7 0 0 0-1.88.34l-.05.05-2.83-2.83.05-.05A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-1.6-1.4v-3.2A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-.34-1.88l-.05-.05 2.83-2.83.05.05A1.7 1.7 0 0 0 9 4.6 1.7 1.7 0 0 0 10.4 3h3.2A1.7 1.7 0 0 0 15 4.6a1.7 1.7 0 0 0 1.88-.34l.05-.05 2.83 2.83-.05.05A1.7 1.7 0 0 0 19.4 9a1.7 1.7 0 0 0 1.6 1.4v3.2A1.7 1.7 0 0 0 19.4 15Z"></path>
+</svg>
+<svg id="iconError" class="state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+<circle cx="12" cy="12" r="9"></circle>
+<path d="M12 7v6M12 17h.01"></path>
+</svg>
+</div>
+<div class="state-copy">
+<small>Estado atual</small>
+<strong id="stateValue">CARREGANDO</strong>
+</div>
+<span id="controlModeBadge" class="state-mode manual">
+MANUAL
+</span>
+</div>
+<div class="hero-mode-detail">
+<span id="controlModeLabel">Controle manual</span>
+<strong id="activeRecipeName">Sem receita ativa</strong>
+</div>
+<div id="protectionPanel" class="protection" hidden>
+Proteção ativa · compressor liberado em
+<strong id="protectionSeconds">0</strong> segundos
+</div>
+</section>
+<section class="card" data-page="dashboard">
+<div class="section-head">
+<h2 class="section-title">Segurança e alarmes</h2>
+<div class="mini-icon">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+<path d="M12 3 2.5 20h19L12 3Z"></path>
+<path d="M12 9v5M12 17h.01"></path>
+</svg>
+</div>
+</div>
+<div id="alarmDashboard" class="alarm-dashboard">
+<div class="alarm-dashboard-copy">
+<span>Estado de segurança</span>
+<strong id="alarmDashboardSummary">Nenhum alarme</strong>
+</div>
+<div id="alarmDashboardCount" class="alarm-count-badge">0</div>
+</div>
+</section>
+
+<section class="card" data-page="dashboard">
+<div class="section-head">
+<h2 class="section-title">Progresso da receita</h2>
+<div class="mini-icon">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+<path d="M4 18V6M10 18V10M16 18V3M22 18V8"></path>
+</svg>
+</div>
+</div>
+<div class="dashboard-profile-grid">
+<div class="dashboard-profile-item">
+<span>Receita</span>
+<strong id="dashboardProfileName">--</strong>
+</div>
+<div class="dashboard-profile-item">
+<span>Estado</span>
+<strong id="dashboardProfileState">PARADO</strong>
+</div>
+<div class="dashboard-profile-item">
+<span>Etapa</span>
+<strong id="dashboardProfileStage">--</strong>
+</div>
+<div class="dashboard-profile-item">
+<span>Alvo atual</span>
+<strong id="dashboardProfileTarget">--</strong>
+</div>
+</div>
+<div class="profile-progress-shell">
+<div id="dashboardProfileProgressBar" class="profile-progress-bar"></div>
+</div>
+<div class="dashboard-profile-footer">
+<span id="dashboardStageRemaining">Etapa: --</span>
+<span id="dashboardTotalRemaining">Total: --</span>
+</div>
+</section>
+<section class="card" data-page="profiles">
+<div class="section-head">
+<h2 class="section-title">Perfil de fermentação</h2>
+<div class="mini-icon">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+<path d="M4 20V10M10 20V4M16 20v-7M22 20V7"></path>
+</svg>
+</div>
+</div>
+<div class="profile-summary">
+<div class="profile-summary-item">
+<span>Perfil</span>
+<strong id="profileNameDisplay">--</strong>
+</div>
+<div class="profile-summary-item">
+<span>Estado</span>
+<strong id="profileStateDisplay">PARADO</strong>
+</div>
+<div class="profile-summary-item">
+<span>Etapa</span>
+<strong id="profileStageDisplay">--</strong>
+</div>
+</div>
+<div class="profile-progress-shell">
+<div id="profileProgressBar" class="profile-progress-bar"></div>
+</div>
+<div id="profileProgressText" class="profile-progress-text">
+Nenhum perfil em execução
+</div>
+<div class="profile-actions">
+<button id="profileStartButton" class="save-button" type="button">
+INICIAR
+</button>
+<button id="profilePauseButton" class="secondary-button" type="button">
+PAUSAR
+</button>
+<button id="profileResumeButton" class="secondary-button" type="button">
+RETOMAR
+</button>
+<button id="profileCancelButton" class="secondary-button" type="button">
+CANCELAR
+</button>
+</div>
+<div id="profileRuntimeMessage" class="message"></div>
+</section>
+<section class="card" data-page="dashboard">
+<div class="section-head">
+<h2 class="section-title">Parâmetros de controle</h2>
+<div class="mini-icon">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round">
+<path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"></path>
+</svg>
+</div>
+</div>
+<div class="metrics">
+<div class="metric">
+<span class="metric-label">Setpoint</span>
+<span id="setpointDisplay" class="metric-value">--.-</span>
+<span class="metric-unit">°C</span>
+</div>
+<div class="metric">
+<span class="metric-label">Histerese</span>
+<span id="hysteresisDisplay" class="metric-value">--.-</span>
+<span class="metric-unit">°C</span>
+</div>
+<div class="metric">
+<span class="metric-label">Histórico</span>
+<span id="historyCount" class="metric-value">0</span>
+<span class="metric-unit">pts</span>
+</div>
+</div>
+</section>
+<section class="card" data-page="dashboard">
+<div class="section-head">
+<h2 class="section-title">Saídas de potência</h2>
+<div class="mini-icon">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round">
+<path d="M18.4 6.6a9 9 0 1 1-12.8 0M12 2v10"></path>
+</svg>
+</div>
+</div>
+<div class="relay-grid">
+<div id="coolingRelay" class="relay-card cooling">
+<div class="relay-head">
+<svg class="relay-icon icon-snow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+<path d="M12 2v20M4.9 4.9l14.2 14.2M2 12h20M4.9 19.1 19.1 4.9"></path>
+</svg>
+<span class="relay-light"></span>
+</div>
+<span class="relay-name">Resfriamento</span>
+<span id="coolingState" class="relay-state">DESLIGADO</span>
+</div>
+<div id="heatingRelay" class="relay-card heating">
+<div class="relay-head">
+<svg class="relay-icon icon-flame" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M12 22c4.4 0 7-3 7-7.1 0-3.2-1.8-5.3-4.8-8.3.2 2.1-.7 3.7-2.2 4.8.1-3.4-1.7-6.2-4.3-8.4.2 3.4-2.7 5.7-2.7 9.7C5 18.1 7.9 22 12 22Z"></path>
+</svg>
+<span class="relay-light"></span>
+</div>
+<span class="relay-name">Aquecimento</span>
+<span id="heatingState" class="relay-state">DESLIGADO</span>
+</div>
+</div>
+</section>
+<section class="card" data-page="dashboard">
+<div class="section-head">
+<h2 class="section-title">Temperatura · últimas 6 horas</h2>
+<div class="mini-icon">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+<path d="M3 3v18h18M6 16l4-5 4 3 5-7"></path>
+</svg>
+</div>
+</div>
+<div class="chart-toolbar">
+<div class="range-controls" aria-label="Escala de tempo do gráfico">
+<button class="range-button" type="button" data-range="10">10 s</button>
+<button class="range-button" type="button" data-range="60">1 min</button>
+<button class="range-button" type="button" data-range="600">10 min</button>
+<button class="range-button" type="button" data-range="3600">1 h</button>
+<button class="range-button active" type="button" data-range="21600">6 h</button>
+</div>
+<span id="rangeLabel" class="range-label">Visualizando 6 horas</span>
+</div>
+<div class="chart-wrapper">
+<canvas id="temperatureChart"></canvas>
+<div id="emptyChart" class="empty-chart">Aguardando histórico...</div>
+</div>
+<div class="chart-footer">
+<div class="legend">
+<div class="legend-item">
+<span class="legend-line legend-temp"></span>
+Temperatura
+</div>
+<div class="legend-item">
+<span class="legend-line legend-sp"></span>
+Setpoint
+</div>
+</div>
+<span>1 ponto a cada 15 segundos</span>
+</div>
+</section>
+</div>
+<aside class="stack">
+<section class="card" data-page="manual">
+<div class="section-head">
+<h2 class="section-title">Modo manual</h2>
+<div class="mini-icon">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+<circle cx="12" cy="12" r="3"></circle>
+<path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.05.05-2.83 2.83-.05-.05A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6A1.7 1.7 0 0 0 13.6 21h-3.2A1.7 1.7 0 0 0 9 19.4a1.7 1.7 0 0 0-1.88.34l-.05.05-2.83-2.83.05-.05A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-1.6-1.4v-3.2A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-.34-1.88l-.05-.05 2.83-2.83.05.05A1.7 1.7 0 0 0 9 4.6 1.7 1.7 0 0 0 10.4 3h3.2A1.7 1.7 0 0 0 15 4.6a1.7 1.7 0 0 0 1.88-.34l.05-.05 2.83 2.83-.05.05A1.7 1.7 0 0 0 19.4 9a1.7 1.7 0 0 0 1.6 1.4v3.2A1.7 1.7 0 0 0 19.4 15Z"></path>
+</svg>
+</div>
+</div>
+<form id="settingsForm">
+<div class="form-group">
+<div class="label-row">
+<label for="setpointInput">Setpoint</label>
+<span class="limit">-10 a 40 °C</span>
+</div>
+<div class="input-wrap">
+<input id="setpointInput" name="setpoint" type="number" min="-10" max="40" step="0.1" inputmode="decimal" required>
+<span class="input-unit">°C</span>
+</div>
+</div>
+<div class="form-group">
+<div class="label-row">
+<label for="hysteresisInput">Histerese</label>
+<span class="limit">0,1 a 5,0 °C</span>
+</div>
+<div class="input-wrap">
+<input id="hysteresisInput" name="hysteresis" type="number" min="0.1" max="5.0" step="0.1" inputmode="decimal" required>
+<span class="input-unit">°C</span>
+</div>
+</div>
+<button id="saveButton" class="save-button" type="submit">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+<path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"></path>
+<path d="M17 21v-8H7v8M7 3v5h8"></path>
+</svg>
+<span id="saveButtonText">SALVAR CONFIGURAÇÕES</span>
+</button>
+<div id="saveMessage" class="message"></div>
+</form>
+</section>
+<section class="card" data-page="profiles">
+<div class="section-head">
+<h2 class="section-title">Editor de perfil</h2>
+<div class="mini-icon">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+<path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z"></path>
+</svg>
+</div>
+</div>
+<form id="profileForm">
+<div class="form-group">
+<div class="label-row">
+<label for="profileNameInput">Nome do perfil</label>
+<span class="limit">até 31 caracteres</span>
+</div>
+<div class="input-wrap">
+<input
+id="profileNameInput"
+name="profileName"
+type="text"
+maxlength="31"
+placeholder="Ex.: APA US-05"
+required
+>
+</div>
+</div>
+<div id="profileStageList" class="profile-stage-list"></div>
+<div class="profile-editor-actions">
+<button id="addProfileStageButton" class="secondary-button" type="button">
++ ADICIONAR ETAPA
+</button>
+<button id="saveProfileButton" class="save-button" type="submit">
+SALVAR PERFIL
+</button>
+</div>
+<div class="form-group" style="margin-top:14px;">
+<div class="label-row">
+<label for="recipeSlotInput">Salvar também na biblioteca</label>
+<span class="limit">6 posições</span>
+</div>
+<div class="profile-stage-grid">
+<div class="input-wrap">
+<input
+id="recipeSlotInput"
+type="number"
+min="1"
+max="6"
+step="1"
+value="1"
+>
+<span class="input-unit">slot</span>
+</div>
+<button
+id="saveRecipeButton"
+class="secondary-button"
+type="button"
+>
+SALVAR RECEITA
+</button>
+</div>
+</div>
+<div id="profileEditorMessage" class="message"></div>
+</form>
+</section>
+<section class="card" data-page="library">
+<div class="section-head">
+<h2 class="section-title">Biblioteca de receitas</h2>
+<div class="mini-icon">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+<path d="M4 4h16v16H4zM8 8h8M8 12h8M8 16h5"></path>
+</svg>
+</div>
+</div>
+<p class="firmware-note">
+Salve até 6 receitas. Cada receita pode ser carregada no editor ou iniciada diretamente.
+</p>
+<div id="recipeGrid" class="recipe-grid"></div>
+<div id="recipeLibraryMessage" class="message"></div>
+</section>
+<section class="card" data-page="alarms">
+<div class="section-head">
+<h2 class="section-title">Alarmes ativos</h2>
+<div class="mini-icon">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+<path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"></path>
+</svg>
+</div>
+</div>
+<div id="alarmList" class="alarm-list"></div>
+<button id="acknowledgeAlarmsButton" class="secondary-button" type="button">
+RECONHECER ALARMES ATIVOS
+</button>
+<div id="alarmActionMessage" class="message"></div>
+</section>
+
+<section class="card" data-page="alarms">
+<div class="section-head">
+<h2 class="section-title">Configuração de segurança</h2>
+<div class="mini-icon">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round">
+<path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"></path>
+</svg>
+</div>
+</div>
+<form id="alarmForm">
+<div class="toggle-row">
+<label for="sensorAlarmEnabled">Falha do sensor</label>
+<input id="sensorAlarmEnabled" type="checkbox">
+</div>
+<div class="toggle-row">
+<label for="highAlarmEnabled">Temperatura máxima</label>
+<input id="highAlarmEnabled" type="checkbox">
+</div>
+<div class="toggle-row">
+<label for="lowAlarmEnabled">Temperatura mínima</label>
+<input id="lowAlarmEnabled" type="checkbox">
+</div>
+<div class="toggle-row">
+<label for="responseAlarmEnabled">Ausência de resposta térmica</label>
+<input id="responseAlarmEnabled" type="checkbox">
+</div>
+
+<div class="alarm-config-grid">
+<div>
+<label for="highAlarmLimit">Limite máximo</label>
+<div class="input-wrap">
+<input id="highAlarmLimit" type="number" min="-29" max="60" step="0.1" required>
+<span class="input-unit">°C</span>
+</div>
+</div>
+<div>
+<label for="lowAlarmLimit">Limite mínimo</label>
+<div class="input-wrap">
+<input id="lowAlarmLimit" type="number" min="-30" max="59" step="0.1" required>
+<span class="input-unit">°C</span>
+</div>
+</div>
+<div>
+<label for="responseAlarmMinutes">Tempo para resposta</label>
+<div class="input-wrap">
+<input id="responseAlarmMinutes" type="number" min="1" max="1440" step="1" required>
+<span class="input-unit">min</span>
+</div>
+</div>
+<div>
+<label for="minimumThermalChange">Variação mínima esperada</label>
+<div class="input-wrap">
+<input id="minimumThermalChange" type="number" min="0.1" max="10" step="0.1" required>
+<span class="input-unit">°C</span>
+</div>
+</div>
+</div>
+
+<button id="saveAlarmButton" class="save-button" type="submit" style="margin-top:14px;">
+SALVAR ALARMES
+</button>
+<div id="alarmSaveMessage" class="message"></div>
+</form>
+</section>
+
+<section class="card" data-page="calibration">
+<div class="section-head">
+<h2 class="section-title">Calibração dos sensores</h2>
+<div class="mini-icon">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+<path d="M14 4h6M17 1v6M4 20l10-10M6 8l2-2 4 4-2 2M3 21l3-1-2-2-1 3Z"></path>
+</svg>
+</div>
+</div>
+
+<form id="calibrationForm">
+<div class="calibration-grid">
+<div class="calibration-sensor">
+<div class="calibration-sensor-head">
+<strong>Sensor da geladeira</strong>
+<span id="refrigeratorCalibrationStatus" class="calibration-status">
+DESCONECTADO
+</span>
+</div>
+
+<div class="calibration-readings">
+<div class="calibration-reading">
+<span>Leitura bruta</span>
+<strong id="refrigeratorRawReading">--</strong>
+</div>
+<div class="calibration-reading">
+<span>Leitura corrigida</span>
+<strong id="refrigeratorCorrectedReading">--</strong>
+</div>
+</div>
+
+<label for="refrigeratorOffsetInput">Offset de calibração</label>
+<div class="input-wrap">
+<input
+id="refrigeratorOffsetInput"
+type="number"
+min="-10"
+max="10"
+step="0.01"
+required
+>
+<span class="input-unit">°C</span>
+</div>
+<div class="calibration-equation">
+Temperatura corrigida = leitura bruta + offset
+</div>
+</div>
+
+<div class="calibration-sensor">
+<div class="calibration-sensor-head">
+<strong>Sensor do poço térmico</strong>
+<span id="thermalWellCalibrationStatus" class="calibration-status">
+DESCONECTADO
+</span>
+</div>
+
+<div class="calibration-readings">
+<div class="calibration-reading">
+<span>Leitura bruta</span>
+<strong id="thermalWellRawReading">--</strong>
+</div>
+<div class="calibration-reading">
+<span>Leitura corrigida</span>
+<strong id="thermalWellCorrectedReading">--</strong>
+</div>
+</div>
+
+<label for="thermalWellOffsetInput">Offset de calibração</label>
+<div class="input-wrap">
+<input
+id="thermalWellOffsetInput"
+type="number"
+min="-10"
+max="10"
+step="0.01"
+required
+>
+<span class="input-unit">°C</span>
+</div>
+<div class="calibration-equation">
+Temperatura corrigida = leitura bruta + offset
+</div>
+</div>
+</div>
+
+<div class="profile-editor-actions" style="margin-top:14px;">
+<button id="resetCalibrationButton" class="secondary-button" type="button">
+ZERAR CALIBRAÇÃO
+</button>
+<button id="saveCalibrationButton" class="save-button" type="submit">
+SALVAR CALIBRAÇÃO
+</button>
+</div>
+
+<div id="calibrationMessage" class="message"></div>
+
+<div class="calibration-note">
+Use um termômetro de referência confiável e aguarde os sensores estabilizarem no mesmo meio. O offset pode variar de -10,00 a +10,00 °C. A correção é aplicada imediatamente ao controle, ao gráfico, aos alarmes e ao display.
+</div>
+</form>
+</section>
+
+<section class="card" data-page="events">
+<div class="section-head">
+<h2 class="section-title">Histórico de eventos</h2>
+<div class="mini-icon">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+<path d="M3 12a9 9 0 1 0 3-6.7L3 8"></path>
+<path d="M3 3v5h5M12 7v5l3 2"></path>
+</svg>
+</div>
+</div>
+<div class="event-toolbar">
+<select id="eventFilter" class="event-filter">
+<option value="all">Todos os eventos</option>
+<option value="Sistema">Sistema</option>
+<option value="Receita">Receita</option>
+<option value="Controle">Controle</option>
+<option value="Alarme">Alarme</option>
+<option value="OTA">OTA</option>
+<option value="Rede">Rede</option>
+<option value="Nuvem">Nuvem</option>
+</select>
+<button id="clearEventsButton" class="danger-button" type="button">
+LIMPAR HISTÓRICO
+</button>
+</div>
+<div id="eventList" class="event-list">
+<div class="event-empty">Carregando eventos...</div>
+</div>
+<div id="eventMessage" class="message"></div>
+</section>
+
+<section class="card" data-page="cloud">
+<div class="section-head">
+<h2 class="section-title">Maltworks Cloud</h2>
+<div class="mini-icon">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+<path d="M17.5 19H6a4 4 0 0 1-.6-8A6.5 6.5 0 0 1 18 9.5a4.8 4.8 0 0 1-.5 9.5Z"></path>
+<path d="M12 11v6M9.5 13.5 12 11l2.5 2.5"></path>
+</svg>
+</div>
+</div>
+<div class="wifi-status-box">
+<div class="wifi-status-line">
+<span>Estado</span>
+<strong id="cloudStatus" class="wifi-disconnected">DESABILITADA</strong>
+</div>
+<div class="wifi-status-line">
+<span>Device ID</span>
+<strong id="cloudDeviceId">--</strong>
+</div>
+<div class="wifi-status-line">
+<span>Conexão</span>
+<strong id="cloudOnline" class="wifi-disconnected">OFFLINE</strong>
+</div>
+<div class="wifi-status-line">
+<span>Último envio</span>
+<strong id="cloudLastSuccess">--</strong>
+</div>
+<div class="wifi-status-line">
+<span>Último HTTP</span>
+<strong id="cloudLastHttp">--</strong>
+</div>
+<div class="wifi-status-line">
+<span>Próxima tentativa</span>
+<strong id="cloudNextAttempt">--</strong>
+</div>
+<div class="wifi-status-line">
+<span>Código de vínculo</span>
+<strong id="cloudTokenHint">--------</strong>
+</div>
+<div class="wifi-status-line">
+<span>Detalhe</span>
+<strong id="cloudLastError">--</strong>
+</div>
+</div>
+<div class="profile-editor-actions" style="margin-top:14px;">
+<button id="cloudSyncButton" class="secondary-button" type="button">
+SINCRONIZAR AGORA
+</button>
+<button id="cloudTokenButton" class="danger-button" type="button">
+RENOVAR TOKEN
+</button>
+</div>
+<div id="cloudActionMessage" class="message"></div>
+</section>
+
+<section class="card" data-page="cloud">
+<div class="section-head">
+<h2 class="section-title">Configuração da nuvem</h2>
+<div class="mini-icon">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+<path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"></path>
+</svg>
+</div>
+</div>
+<form id="cloudForm">
+<div class="toggle-row">
+<label for="cloudEnabledInput">Enviar telemetria para a nuvem</label>
+<input id="cloudEnabledInput" type="checkbox">
+</div>
+<div class="form-group">
+<div class="label-row">
+<label for="cloudUrlInput">URL HTTPS de telemetria</label>
+<span class="limit">endpoint completo</span>
+</div>
+<div class="input-wrap">
+<input
+id="cloudUrlInput"
+type="url"
+maxlength="190"
+autocomplete="off"
+placeholder="https://api.exemplo.com/v1/telemetry"
+>
+</div>
+</div>
+<div class="form-group">
+<div class="label-row">
+<label for="cloudIntervalInput">Intervalo de envio</label>
+<span class="limit">15 a 3600 segundos</span>
+</div>
+<div class="input-wrap">
+<input
+id="cloudIntervalInput"
+type="number"
+min="5"
+max="3600"
+step="1"
+value="60"
+required
+>
+<span class="input-unit">s</span>
+</div>
+</div>
+<button id="cloudSaveButton" class="save-button" type="submit">
+SALVAR CONFIGURAÇÃO CLOUD
+</button>
+<div id="cloudSaveMessage" class="message"></div>
+<p class="firmware-note">
+A versão 5.2.0 recebe setpoints, receitas e configurações autenticadas da nuvem. Histerese, proteção do compressor, calibração e alarmes são persistidos após validação local. O controle térmico e as proteções permanecem locais. O token completo nunca é exibido pela interface.
+</p>
+</form>
+</section>
+
+<section class="card" data-page="system">
+<div class="section-head">
+<h2 class="section-title">Wi-Fi doméstico</h2>
+<div class="mini-icon">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round">
+<path d="M5 12.6a11 11 0 0 1 14 0M1.5 9a16 16 0 0 1 21 0M8.5 16.1a6 6 0 0 1 7 0M12 20h.01"></path>
+</svg>
+</div>
+</div>
+<div class="wifi-status-box">
+<div class="wifi-status-line">
+<span>Status</span>
+<strong id="stationStatus" class="wifi-disconnected">NÃO CONFIGURADO</strong>
+</div>
+<div class="wifi-status-line">
+<span>Rede salva</span>
+<strong id="stationSsidDisplay">--</strong>
+</div>
+<div class="wifi-status-line">
+<span>IP local</span>
+<strong id="stationIp">--</strong>
+</div>
+<div class="wifi-status-line">
+<span>Sinal</span>
+<strong id="stationRssi">--</strong>
+</div>
+</div>
+<form id="wifiForm">
+<div class="form-group">
+<div class="label-row">
+<label for="wifiSsidInput">Nome da rede</label>
+<span class="limit">SSID</span>
+</div>
+<div class="input-wrap">
+<input
+id="wifiSsidInput"
+name="ssid"
+type="text"
+maxlength="32"
+autocomplete="off"
+required
+>
+</div>
+</div>
+<div class="form-group">
+<div class="label-row">
+<label for="wifiPasswordInput">Senha</label>
+<span class="limit">8 a 63 caracteres</span>
+</div>
+<div class="input-wrap">
+<input
+id="wifiPasswordInput"
+name="password"
+type="password"
+maxlength="63"
+autocomplete="new-password"
+placeholder="Digite a senha da rede"
+>
+</div>
+</div>
+<button id="wifiSaveButton" class="save-button" type="submit">
+<span id="wifiSaveButtonText">SALVAR E CONECTAR</span>
+</button>
+<button id="wifiForgetButton" class="secondary-button" type="button">
+ESQUECER REDE DOMÉSTICA
+</button>
+<div id="wifiMessage" class="message"></div>
+</form>
+</section>
+<section class="card" data-page="system">
+<div class="section-head">
+<h2 class="section-title">Relógio do sistema</h2>
+<div class="mini-icon">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+<circle cx="12" cy="12" r="9"></circle>
+<path d="M12 7v5l3 2"></path>
+</svg>
+</div>
+</div>
+<div class="clock-display">
+<span id="clockTime" class="clock-time">--:--:--</span>
+<span id="clockDate" class="clock-date">--/--/----</span>
+<div class="clock-status-row">
+<span id="clockLed" class="clock-led"></span>
+<span id="clockStatus">AGUARDANDO INTERNET</span>
+</div>
+<div class="clock-detail">
+Fuso horário: UTC-03:00<br>
+Última sincronização:
+<strong id="lastSynchronization">--</strong>
+</div>
+</div>
+</section>
+<section class="card" data-page="system">
+<div class="section-head">
+<h2 class="section-title">Atualização de firmware</h2>
+<div class="mini-icon">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+<path d="M12 3v12M7 8l5-5 5 5M5 21h14a2 2 0 0 0 2-2v-4M3 15v4a2 2 0 0 0 2 2"></path>
+</svg>
+</div>
+</div>
+<div class="wifi-status-box">
+<div class="wifi-status-line">
+<span>Versão instalada</span>
+<strong id="firmwareVersion">5.2.0</strong>
+</div>
+<div class="wifi-status-line">
+<span>Estado</span>
+<strong id="firmwareStatus">PRONTO</strong>
+</div>
+<div class="wifi-status-line">
+<span>Espaço OTA</span>
+<strong id="otaAvailableSpace">--</strong>
+</div>
+</div>
+<form id="firmwareForm">
+<div class="form-group">
+<label for="firmwareFile">Arquivo compilado</label>
+<input
+id="firmwareFile"
+class="firmware-file"
+name="firmware"
+type="file"
+accept=".bin,application/octet-stream"
+required
+>
+</div>
+<div
+id="firmwareInspection"
+class="firmware-inspection"
+>
+<div class="firmware-inspection-row">
+<span>Produto detectado</span>
+<strong id="detectedProduct">--</strong>
+</div>
+<div class="firmware-inspection-row">
+<span>Versão do arquivo</span>
+<strong id="detectedVersion">--</strong>
+</div>
+<div class="firmware-inspection-row">
+<span>Família da placa</span>
+<strong id="detectedBoard">--</strong>
+</div>
+<div class="firmware-inspection-row">
+<span>Compatibilidade</span>
+<strong
+id="firmwareCompatibility"
+class="compatibility-warning"
+>
+AGUARDANDO ANÁLISE
+</strong>
+</div>
+</div>
+<button
+id="firmwareUploadButton"
+class="save-button"
+type="submit"
+>
+<span id="firmwareUploadButtonText">
+INSTALAR FIRMWARE
+</span>
+</button>
+<div
+id="firmwareProgressShell"
+class="progress-shell"
+hidden
+>
+<div
+id="firmwareProgressBar"
+class="progress-bar"
+></div>
+</div>
+<div
+id="firmwareProgressText"
+class="progress-text"
+hidden
+>
+0%
+</div>
+<div
+id="firmwareMessage"
+class="message"
+></div>
+<p class="firmware-note">
+A interface valida o cabeçalho do firmware ESP32 e o espaço OTA. Metadados Maltworks são exibidos quando disponíveis, mas não bloqueiam a instalação.
+</p>
+</form>
+</section>
+<section class="card" data-page="system">
+<div class="section-head">
+<h2 class="section-title">Sistema</h2>
+<div class="mini-icon">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round">
+<path d="M5 12.6a11 11 0 0 1 14 0M1.5 9a16 16 0 0 1 21 0M8.5 16.1a6 6 0 0 1 7 0M12 20h.01"></path>
+</svg>
+</div>
+</div>
+<div class="info-list">
+<div class="info-row">
+<span>Rede</span>
+<strong>MaltworksController</strong>
+</div>
+<div class="info-row">
+<span>Endereço IP</span>
+<strong id="ipAddress">192.168.4.1</strong>
+</div>
+<div class="info-row">
+<span>Dispositivos</span>
+<strong id="connectedClients">0</strong>
+</div>
+<div class="info-row">
+<span>Atualização</span>
+<strong>1 segundo</strong>
+</div>
+<div class="info-row">
+<span>Janela do gráfico</span>
+<strong>6 horas</strong>
+</div>
+</div>
+</section>
+</aside>
+</div>
+<footer class="footer">
+Maltworks Controller · Controle local com telemetria cloud · ESP32
+</footer>
+</main>
+<script>
+let formInitialized=false;
+let userEditing=false;
+let historyData=[];
+let liveData=[];
+let selectedRangeSeconds=21600;
+let saveMessageTimer=null;
+let currentFirmwareProduct="MaltworksController";
+let currentFirmwareBoardFamily="ESP32";
+let inspectedFirmware=null;
+let profileEditorInitialized=false;
+let profileEditorDirty=false;
+let recipeLibraryData=null;
+let activePage="dashboard";
+let alarmFormInitialized=false;
+let eventData=[];
+let calibrationFormInitialized=false;
+let cloudFormInitialized=false;
+let cloudFormDirty=false;
+let cloudMessageTimer=null;
+const byId=(id)=>document.getElementById(id);
+const temperatureValue=byId("temperatureValue");
+const stateValue=byId("stateValue");
+const stateOrb=byId("stateOrb");
+const protectionPanel=byId("protectionPanel");
+const protectionSeconds=byId("protectionSeconds");
+const sensorLed=byId("sensorLed");
+const sensorText=byId("sensorText");
+const controlModeBadge=byId("controlModeBadge");
+const controlModeLabel=byId("controlModeLabel");
+const activeRecipeName=byId("activeRecipeName");
+const icons={
+idle:byId("iconIdle"),
+snow:byId("iconSnow"),
+flame:byId("iconFlame"),
+gear:byId("iconGear"),
+error:byId("iconError")
+};
+const setpointDisplay=byId("setpointDisplay");
+const hysteresisDisplay=byId("hysteresisDisplay");
+const historyCount=byId("historyCount");
+const coolingRelay=byId("coolingRelay");
+const heatingRelay=byId("heatingRelay");
+const coolingState=byId("coolingState");
+const heatingState=byId("heatingState");
+const setpointInput=byId("setpointInput");
+const hysteresisInput=byId("hysteresisInput");
+const settingsForm=byId("settingsForm");
+const saveButton=byId("saveButton");
+const saveButtonText=byId("saveButtonText");
+const saveMessage=byId("saveMessage");
+const connectionDot=byId("connectionDot");
+const connectionText=byId("connectionText");
+const stationStatus=byId("stationStatus");
+const stationSsidDisplay=byId("stationSsidDisplay");
+const stationIp=byId("stationIp");
+const stationRssi=byId("stationRssi");
+const wifiForm=byId("wifiForm");
+const wifiSsidInput=byId("wifiSsidInput");
+const wifiPasswordInput=byId("wifiPasswordInput");
+const wifiSaveButton=byId("wifiSaveButton");
+const wifiSaveButtonText=byId("wifiSaveButtonText");
+const wifiForgetButton=byId("wifiForgetButton");
+const wifiMessage=byId("wifiMessage");
+const firmwareVersion=byId("firmwareVersion");
+const firmwareStatus=byId("firmwareStatus");
+const firmwareForm=byId("firmwareForm");
+const firmwareFile=byId("firmwareFile");
+const firmwareUploadButton=byId("firmwareUploadButton");
+const firmwareUploadButtonText=byId("firmwareUploadButtonText");
+const firmwareProgressShell=byId("firmwareProgressShell");
+const firmwareProgressBar=byId("firmwareProgressBar");
+const firmwareProgressText=byId("firmwareProgressText");
+const firmwareMessage=byId("firmwareMessage");
+const otaAvailableSpace=byId("otaAvailableSpace");
+const firmwareInspection=byId("firmwareInspection");
+const detectedProduct=byId("detectedProduct");
+const detectedVersion=byId("detectedVersion");
+const detectedBoard=byId("detectedBoard");
+const firmwareCompatibility=byId("firmwareCompatibility");
+const clockTime=byId("clockTime");
+const clockDate=byId("clockDate");
+const clockLed=byId("clockLed");
+const clockStatus=byId("clockStatus");
+const lastSynchronization=byId("lastSynchronization");
+const profileNameDisplay=byId("profileNameDisplay");
+const profileStateDisplay=byId("profileStateDisplay");
+const profileStageDisplay=byId("profileStageDisplay");
+const profileProgressBar=byId("profileProgressBar");
+const profileProgressText=byId("profileProgressText");
+const profileStartButton=byId("profileStartButton");
+const profilePauseButton=byId("profilePauseButton");
+const profileResumeButton=byId("profileResumeButton");
+const profileCancelButton=byId("profileCancelButton");
+const profileRuntimeMessage=byId("profileRuntimeMessage");
+const dashboardProfileName=byId("dashboardProfileName");
+const dashboardProfileState=byId("dashboardProfileState");
+const dashboardProfileStage=byId("dashboardProfileStage");
+const dashboardProfileTarget=byId("dashboardProfileTarget");
+const dashboardProfileProgressBar=byId("dashboardProfileProgressBar");
+const dashboardStageRemaining=byId("dashboardStageRemaining");
+const dashboardTotalRemaining=byId("dashboardTotalRemaining");
+const profileForm=byId("profileForm");
+const profileNameInput=byId("profileNameInput");
+const profileStageList=byId("profileStageList");
+const addProfileStageButton=byId("addProfileStageButton");
+const saveProfileButton=byId("saveProfileButton");
+const profileEditorMessage=byId("profileEditorMessage");
+const recipeSlotInput=byId("recipeSlotInput");
+const saveRecipeButton=byId("saveRecipeButton");
+const recipeGrid=byId("recipeGrid");
+const recipeLibraryMessage=byId("recipeLibraryMessage");
+const alarmDashboard=byId("alarmDashboard");
+const alarmDashboardSummary=byId("alarmDashboardSummary");
+const alarmDashboardCount=byId("alarmDashboardCount");
+const alarmList=byId("alarmList");
+const acknowledgeAlarmsButton=byId("acknowledgeAlarmsButton");
+const alarmActionMessage=byId("alarmActionMessage");
+const alarmForm=byId("alarmForm");
+const sensorAlarmEnabled=byId("sensorAlarmEnabled");
+const highAlarmEnabled=byId("highAlarmEnabled");
+const lowAlarmEnabled=byId("lowAlarmEnabled");
+const responseAlarmEnabled=byId("responseAlarmEnabled");
+const highAlarmLimit=byId("highAlarmLimit");
+const lowAlarmLimit=byId("lowAlarmLimit");
+const responseAlarmMinutes=byId("responseAlarmMinutes");
+const minimumThermalChange=byId("minimumThermalChange");
+const saveAlarmButton=byId("saveAlarmButton");
+const alarmSaveMessage=byId("alarmSaveMessage");
+const eventFilter=byId("eventFilter");
+const clearEventsButton=byId("clearEventsButton");
+const eventList=byId("eventList");
+const eventMessage=byId("eventMessage");
+const calibrationForm=byId("calibrationForm");
+const refrigeratorCalibrationStatus=byId("refrigeratorCalibrationStatus");
+const thermalWellCalibrationStatus=byId("thermalWellCalibrationStatus");
+const refrigeratorRawReading=byId("refrigeratorRawReading");
+const refrigeratorCorrectedReading=byId("refrigeratorCorrectedReading");
+const thermalWellRawReading=byId("thermalWellRawReading");
+const thermalWellCorrectedReading=byId("thermalWellCorrectedReading");
+const refrigeratorOffsetInput=byId("refrigeratorOffsetInput");
+const thermalWellOffsetInput=byId("thermalWellOffsetInput");
+const saveCalibrationButton=byId("saveCalibrationButton");
+const resetCalibrationButton=byId("resetCalibrationButton");
+const calibrationMessage=byId("calibrationMessage");
+const cloudStatus=byId("cloudStatus");
+const cloudDeviceId=byId("cloudDeviceId");
+const cloudOnline=byId("cloudOnline");
+const cloudLastSuccess=byId("cloudLastSuccess");
+const cloudLastHttp=byId("cloudLastHttp");
+const cloudNextAttempt=byId("cloudNextAttempt");
+const cloudTokenHint=byId("cloudTokenHint");
+const cloudLastError=byId("cloudLastError");
+const cloudSyncButton=byId("cloudSyncButton");
+const cloudTokenButton=byId("cloudTokenButton");
+const cloudActionMessage=byId("cloudActionMessage");
+const cloudForm=byId("cloudForm");
+const cloudEnabledInput=byId("cloudEnabledInput");
+const cloudUrlInput=byId("cloudUrlInput");
+const cloudIntervalInput=byId("cloudIntervalInput");
+const cloudSaveButton=byId("cloudSaveButton");
+const cloudSaveMessage=byId("cloudSaveMessage");
+const mainLayout=byId("mainLayout");
+const tabButtons=Array.from(
+document.querySelectorAll(".tab-button")
+);
+const chart=byId("temperatureChart");
+const emptyChart=byId("emptyChart");
+const rangeLabel=byId("rangeLabel");
+const rangeButtons=Array.from(
+document.querySelectorAll(".range-button")
+);
+function setConnected(connected){
+connectionDot.classList.toggle("offline",!connected);
+connectionText.textContent=connected?"Conectado":"Sem comunicação";
+}
+function setSensorStatus(connected){
+sensorLed.classList.toggle("error",!connected);
+sensorText.textContent=connected?"Sensor conectado":"Falha no sensor";
+}
+function showStateIcon(type){
+Object.values(icons).forEach((icon)=>{
+icon.classList.remove("active");
+});
+stateOrb.className="state-orb";
+let activeIcon=icons.idle;
+if(type==="cooling"){
+activeIcon=icons.snow;
+stateOrb.classList.add("cooling");
+}else if(type==="heating"){
+activeIcon=icons.flame;
+stateOrb.classList.add("heating");
+}else if(type==="waiting"){
+activeIcon=icons.gear;
+stateOrb.classList.add("waiting");
+}else if(type==="error"){
+activeIcon=icons.error;
+stateOrb.classList.add("error");
+}
+activeIcon.classList.add("active");
+}
+function updateRelay(element,textElement,active){
+element.classList.toggle("active",active);
+textElement.textContent=active?"LIGADO":"DESLIGADO";
+}
+function showMessage(message,type){
+if(saveMessageTimer) clearTimeout(saveMessageTimer);
+saveMessage.textContent=message;
+saveMessage.className="message "+type;
+saveMessageTimer=setTimeout(()=>{
+saveMessage.className="message";
+},4200);
+}
+function updateControlMode(profile){
+const automaticMode=
+Boolean(
+profile &&
+profile.active
+);
+controlModeBadge.classList.toggle(
+"manual",
+!automaticMode
+);
+controlModeBadge.classList.toggle(
+"automatic",
+automaticMode
+);
+if(automaticMode){
+controlModeBadge.textContent=
+"AUTOMÁTICO";
+controlModeLabel.textContent=
+"Receita em execução";
+activeRecipeName.textContent=
+profile.name ||
+"Receita sem nome";
+}else{
+controlModeBadge.textContent=
+"MANUAL";
+controlModeLabel.textContent=
+"Controle manual";
+if(
+profile &&
+profile.completed &&
+profile.name
+){
+activeRecipeName.textContent=
+"Última: "+
+profile.name+
+" · concluída";
+}else if(
+profile &&
+profile.paused &&
+profile.name
+){
+activeRecipeName.textContent=
+profile.name+
+" · pausada";
+}else{
+activeRecipeName.textContent=
+"Sem receita ativa";
+}
+}
+}
+function updateDashboard(data){
+setConnected(true);
+setSensorStatus(data.sensorConnected);
+updateControlMode(data.profile);
+updateCalibrationInterface(data);
+updateCloudInterface(data.cloud);
+if(data.sensorConnected){
+temperatureValue.textContent=data.temperatureText;
+temperatureValue.classList.remove("error");
+}else{
+temperatureValue.textContent="ERRO";
+temperatureValue.classList.add("error");
+}
+stateValue.textContent=data.state;
+setpointDisplay.textContent=Number(data.setpoint).toFixed(1);
+hysteresisDisplay.textContent=Number(data.hysteresis).toFixed(1);
+historyCount.textContent=data.historyPoints;
+const nowSeconds=Date.now()/1000;
+if(data.sensorConnected && Number.isFinite(Number(data.temperature))){
+liveData.push({
+timestampSeconds:nowSeconds,
+temperature:Number(data.temperature),
+setpoint:Number(data.setpoint)
+});
+const liveCutoff=nowSeconds-120;
+liveData=liveData.filter(
+(point)=>point.timestampSeconds>=liveCutoff
+);
+}
+updateRelay(coolingRelay,coolingState,data.cooling);
+updateRelay(heatingRelay,heatingState,data.heating);
+if(!data.sensorConnected){
+showStateIcon("error");
+}else if(data.waitingForCompressor){
+showStateIcon("waiting");
+}else if(data.cooling){
+showStateIcon("cooling");
+}else if(data.heating){
+showStateIcon("heating");
+}else{
+showStateIcon("idle");
+}
+if(data.waitingForCompressor){
+protectionPanel.hidden=false;
+protectionSeconds.textContent=data.protectionSeconds;
+}else{
+protectionPanel.hidden=true;
+}
+byId("ipAddress").textContent=data.ipAddress;
+byId("connectedClients").textContent=data.connectedClients;
+stationStatus.textContent=data.stationStatus;
+stationStatus.className=
+data.stationConnected
+? "wifi-connected"
+: "wifi-disconnected";
+stationSsidDisplay.textContent=
+data.stationConfigured
+? data.stationSsid
+: "--";
+stationIp.textContent=data.stationIp;
+stationRssi.textContent=
+data.stationConnected
+? data.stationRssi+" dBm"
+: "--";
+firmwareVersion.textContent=
+data.firmwareVersion;
+otaAvailableSpace.textContent=
+formatBytes(
+data.otaAvailableBytes
+);
+currentFirmwareProduct=
+data.firmwareProduct ||
+"MaltworksController";
+currentFirmwareBoardFamily=
+data.firmwareBoardFamily ||
+"ESP32";
+clockTime.textContent=
+data.clockSynchronized
+? data.timeText
+: "--:--:--";
+clockDate.textContent=
+data.clockSynchronized
+? data.dateText
+: "--/--/----";
+clockStatus.textContent=
+data.clockStatus;
+clockLed.classList.toggle(
+"synchronized",
+data.clockSynchronized
+);
+lastSynchronization.textContent=
+data.lastSynchronization;
+updateProfileDashboard(
+data.profile,
+data.clockSynchronized
+);
+recipeLibraryData=
+data.recipeLibrary;
+renderRecipeLibrary();
+updateAlarmInterface(
+data.alarms
+);
+
+if(
+typeof data.eventCount==="number"&&
+data.eventCount!==eventData.length
+){
+updateEvents();
+}
+
+if(
+!firmwareUploadButton.disabled
+){
+firmwareStatus.textContent=
+data.firmwareUpdateInProgress
+? "ATUALIZANDO"
+: "PRONTO";
+}
+if(
+data.stationConfigured &&
+document.activeElement!==wifiSsidInput &&
+wifiSsidInput.value.length===0
+){
+wifiSsidInput.value=data.stationSsid;
+}
+if(!formInitialized || !userEditing){
+setpointInput.value=Number(data.setpoint).toFixed(1);
+hysteresisInput.value=Number(data.hysteresis).toFixed(1);
+formInitialized=true;
+}
+}
+async function updateData(){
+try{
+const response=await fetch("/api",{cache:"no-store"});
+if(!response.ok) throw new Error("Falha HTTP");
+updateDashboard(await response.json());
+}catch(error){
+setConnected(false);
+stateValue.textContent="SEM COMUNICAÇÃO";
+showStateIcon("error");
+}
+}
+async function updateHistory(){
+try{
+const response=await fetch("/history",{cache:"no-store"});
+if(!response.ok) throw new Error();
+const data=await readControllerJson(response);
+historyData=data.points||[];
+drawChart();
+}catch(error){}
+}
+function formatRangeLabel(seconds){
+if(seconds<60) return seconds+" segundos";
+if(seconds<3600) return (seconds/60)+" minuto"+(seconds===60?"":"s");
+return (seconds/3600)+" hora"+(seconds===3600?"":"s");
+}
+function getChartData(){
+const nowSeconds=Date.now()/1000;
+if(selectedRangeSeconds<=60){
+return liveData
+.filter(
+(point)=>point.timestampSeconds>=nowSeconds-selectedRangeSeconds
+)
+.map(
+(point)=>({
+ageSeconds:Math.max(0,nowSeconds-point.timestampSeconds),
+temperature:point.temperature,
+setpoint:point.setpoint
+})
+);
+}
+return historyData.filter(
+(point)=>Number(point.ageSeconds)<=selectedRangeSeconds
+);
+}
+function drawChart(){
+const chartData=getChartData();
+const context=chart.getContext("2d");
+const rect=chart.getBoundingClientRect();
+const dpr=window.devicePixelRatio||1;
+chart.width=Math.round(rect.width*dpr);
+chart.height=Math.round(rect.height*dpr);
+context.setTransform(dpr,0,0,dpr,0,0);
+const width=rect.width;
+const height=rect.height;
+context.clearRect(0,0,width,height);
+if(!chartData || chartData.length<2){
+emptyChart.style.display="flex";
+emptyChart.textContent=
+selectedRangeSeconds<=60
+? "Coletando dados ao vivo..."
+: "Aguardando histórico...";
+return;
+}
+emptyChart.style.display="none";
+const padding={left:50,right:15,top:16,bottom:32};
+const graphWidth=width-padding.left-padding.right;
+const graphHeight=height-padding.top-padding.bottom;
+const values=[];
+chartData.forEach((point)=>{
+const temperature=Number(point.temperature);
+const setpoint=Number(point.setpoint);
+if(Number.isFinite(temperature)) values.push(temperature);
+if(Number.isFinite(setpoint)) values.push(setpoint);
+});
+if(values.length===0){
+emptyChart.style.display="flex";
+return;
+}
+let minimum=Math.min(...values);
+let maximum=Math.max(...values);
+const minimumRange=2.0;
+const currentRange=maximum-minimum;
+if(currentRange<minimumRange){
+const center=(maximum+minimum)/2;
+minimum=center-minimumRange/2;
+maximum=center+minimumRange/2;
+}
+minimum-=0.5;
+maximum+=0.5;
+const range=maximum-minimum;
+function xForAge(ageSeconds){
+const age=Math.min(
+Math.max(Number(ageSeconds)||0,0),
+selectedRangeSeconds
+);
+return width-padding.right-
+(age/selectedRangeSeconds)*graphWidth;
+}
+function yForValue(value){
+return padding.top+
+((maximum-value)/range)*graphHeight;
+}
+const css=getComputedStyle(document.documentElement);
+const textColor=css.getPropertyValue("--muted").trim();
+const temperatureColor=css.getPropertyValue("--gold-light").trim();
+const setpointColor=css.getPropertyValue("--cool").trim();
+const gridColor="rgba(169,157,139,0.18)";
+context.font="11px Arial";
+context.textAlign="right";
+context.textBaseline="middle";
+for(let line=0;line<=4;line++){
+const ratio=line/4;
+const y=padding.top+ratio*graphHeight;
+const value=maximum-ratio*range;
+context.strokeStyle=gridColor;
+context.lineWidth=1;
+context.beginPath();
+context.moveTo(padding.left,y);
+context.lineTo(width-padding.right,y);
+context.stroke();
+context.fillStyle=textColor;
+context.fillText(
+value.toFixed(1)+"°",
+padding.left-7,
+y
+);
+}
+function formatAxisTime(seconds){
+if(seconds<60) return seconds+" s";
+if(seconds<3600) return Math.round(seconds/60)+" min";
+return (seconds/3600)+" h";
+}
+const labels=[
+{
+ageSeconds:selectedRangeSeconds,
+label:formatAxisTime(selectedRangeSeconds)
+},
+{
+ageSeconds:selectedRangeSeconds/2,
+label:formatAxisTime(selectedRangeSeconds/2)
+},
+{
+ageSeconds:0,
+label:"Agora"
+}
+];
+context.textBaseline="top";
+labels.forEach((item,index)=>{
+const x=xForAge(item.ageSeconds);
+context.strokeStyle=gridColor;
+context.lineWidth=1;
+context.beginPath();
+context.moveTo(x,padding.top);
+context.lineTo(x,padding.top+graphHeight);
+context.stroke();
+context.fillStyle=textColor;
+context.textAlign=
+index===0
+? "left"
+: (
+index===labels.length-1
+? "right"
+: "center"
+);
+context.fillText(
+item.label,
+x,
+height-21
+);
+});
+function drawSeries(field,color,dashed,lineWidth){
+context.strokeStyle=color;
+context.lineWidth=lineWidth;
+context.lineJoin="round";
+context.lineCap="round";
+context.setLineDash(dashed?[7,5]:[]);
+context.beginPath();
+let drawing=false;
+chartData.forEach((point)=>{
+const value=Number(point[field]);
+if(!Number.isFinite(value)){
+drawing=false;
+return;
+}
+const x=xForAge(point.ageSeconds);
+const y=yForValue(value);
+if(!drawing){
+context.moveTo(x,y);
+drawing=true;
+}else{
+context.lineTo(x,y);
+}
+});
+context.stroke();
+context.setLineDash([]);
+}
+drawSeries("setpoint",setpointColor,true,1.6);
+drawSeries("temperature",temperatureColor,false,2.8);
+const pointStep=Math.max(
+1,
+Math.ceil(chartData.length/120)
+);
+context.fillStyle=temperatureColor;
+chartData.forEach((point,index)=>{
+if(
+index%pointStep!==0 &&
+index!==chartData.length-1
+) {
+return;
+}
+const value=Number(point.temperature);
+if(!Number.isFinite(value)){
+return;
+}
+context.beginPath();
+context.arc(
+xForAge(point.ageSeconds),
+yForValue(value),
+2.2,
+0,
+Math.PI*2
+);
+context.fill();
+});
+}
+function showWifiMessage(message,type){
+wifiMessage.textContent=message;
+wifiMessage.className="message "+type;
+}
+async function saveWifi(event){
+event.preventDefault();
+const ssid=wifiSsidInput.value.trim();
+const password=wifiPasswordInput.value;
+if(ssid.length<1 || ssid.length>32){
+showWifiMessage("Informe um nome de rede válido.","error");
+return;
+}
+if(
+password.length!==0 &&
+(
+password.length<8 ||
+password.length>63
+)
+){
+showWifiMessage(
+"A senha deve ter entre 8 e 63 caracteres.",
+"error"
+);
+return;
+}
+wifiSaveButton.disabled=true;
+wifiSaveButtonText.textContent="CONECTANDO...";
+const body=new URLSearchParams();
+body.append("ssid",ssid);
+body.append("password",password);
+try{
+const response=await fetch("/wifi/save",{
+method:"POST",
+headers:{
+"Content-Type":
+"application/x-www-form-urlencoded"
+},
+body:body.toString()
+});
+const result=await readControllerJson(response);
+if(!response.ok || !result.success){
+throw new Error(
+result.message ||
+"Falha ao configurar o Wi-Fi."
+);
+}
+wifiPasswordInput.value="";
+showWifiMessage(result.message,"success");
+setTimeout(updateData,1500);
+}catch(error){
+showWifiMessage(
+error.message ||
+"Falha de comunicação.",
+"error"
+);
+}finally{
+wifiSaveButton.disabled=false;
+wifiSaveButtonText.textContent=
+"SALVAR E CONECTAR";
+}
+}
+async function forgetWifi(){
+const confirmed=window.confirm(
+"Remover a rede doméstica salva?"
+);
+if(!confirmed){
+return;
+}
+wifiForgetButton.disabled=true;
+try{
+const response=await fetch("/wifi/forget",{
+method:"POST"
+});
+const result=await readControllerJson(response);
+if(!response.ok || !result.success){
+throw new Error(
+result.message ||
+"Falha ao apagar a rede."
+);
+}
+wifiSsidInput.value="";
+wifiPasswordInput.value="";
+showWifiMessage(result.message,"success");
+await updateData();
+}catch(error){
+showWifiMessage(
+error.message ||
+"Falha de comunicação.",
+"error"
+);
+}finally{
+wifiForgetButton.disabled=false;
+}
+}
+function switchPage(page){
+activePage=page;
+tabButtons.forEach(
+(button)=>{
+button.classList.toggle(
+"active",
+button.dataset.page===page
+);
+}
+);
+const cards=Array.from(
+document.querySelectorAll(
+"section.card[data-page]"
+)
+);
+cards.forEach(
+(card)=>{
+card.classList.toggle(
+"page-card-hidden",
+card.dataset.page!==page
+);
+}
+);
+const stacks=Array.from(
+mainLayout.querySelectorAll(
+":scope > .stack"
+)
+);
+stacks.forEach(
+(stack)=>{
+const visibleCards=
+Array.from(
+stack.children
+).filter(
+(child)=>
+child.matches("section.card") &&
+!child.classList.contains(
+"page-card-hidden"
+)
+);
+stack.classList.toggle(
+"empty-stack",
+visibleCards.length===0
+);
+}
+);
+mainLayout.classList.toggle(
+"single-page",
+page!=="dashboard"
+);
+if(page==="dashboard"){
+setTimeout(drawChart,50);
+}
+
+if(page==="events"){
+updateEvents();
+}
+}
+function getEditorStages(){
+return Array.from(
+profileStageList.children
+).map(
+(stage)=>{
+const durationValue=
+stage.querySelector(
+".profile-duration"
+).value;
+const durationUnit=
+stage.querySelector(
+".duration-unit-select"
+).value;
+return {
+temperature:Number(
+stage.querySelector(
+".profile-temperature"
+).value
+),
+durationValue:
+Number(durationValue),
+durationUnit:
+durationUnit,
+durationSeconds:
+durationToSeconds(
+durationValue,
+durationUnit
+)
+};
+}
+);
+}
+async function saveRecipeToLibrary(){
+const name=
+profileNameInput.value.trim();
+const stages=
+getEditorStages();
+const slot=
+Number(
+recipeSlotInput.value
+)-1;
+if(
+name.length===0 ||
+stages.length===0 ||
+slot<0 ||
+slot>=6
+){
+showProfileMessage(
+profileEditorMessage,
+"Informe nome, etapas e um slot de 1 a 6.",
+"error"
+);
+return;
+}
+const invalidStage=
+stages.some(
+(stage)=>
+!Number.isFinite(
+stage.temperature
+) ||
+stage.temperature<-10 ||
+stage.temperature>40 ||
+!Number.isFinite(
+stage.durationSeconds
+) ||
+stage.durationSeconds<60 ||
+stage.durationSeconds>
+90*24*60*60
+);
+if(invalidStage){
+showProfileMessage(
+profileEditorMessage,
+"Revise as temperaturas e durações antes de salvar a receita.",
+"error"
+);
+return;
+}
+const body=
+new URLSearchParams();
+body.append("slot",String(slot));
+body.append("name",name);
+body.append(
+"count",
+String(stages.length)
+);
+stages.forEach(
+(stage,index)=>{
+body.append(
+"temperature"+index,
+stage.temperature.toFixed(1)
+);
+body.append(
+"durationSeconds"+index,
+Math.round(
+stage.durationSeconds
+).toString()
+);
+}
+);
+try{
+const response=await fetch(
+"/recipe/save",
+{
+method:"POST",
+headers:{
+"Content-Type":
+"application/x-www-form-urlencoded"
+},
+body:body.toString()
+}
+);
+const result=
+await readControllerJson(response);
+if(
+!response.ok ||
+!result.success
+){
+throw new Error(
+result.message ||
+"Falha ao salvar receita."
+);
+}
+showProfileMessage(
+profileEditorMessage,
+result.message,
+"success"
+);
+await updateData();
+}catch(error){
+showProfileMessage(
+profileEditorMessage,
+error.message ||
+"Falha de comunicação.",
+"error"
+);
+}
+}
+async function recipeAction(
+endpoint,
+slot,
+confirmation=null
+){
+if(
+confirmation &&
+!window.confirm(confirmation)
+){
+return;
+}
+const body=
+new URLSearchParams();
+body.append(
+"slot",
+String(slot)
+);
+try{
+const response=await fetch(
+endpoint,
+{
+method:"POST",
+headers:{
+"Content-Type":
+"application/x-www-form-urlencoded"
+},
+body:body.toString()
+}
+);
+const result=
+await readControllerJson(response);
+if(
+!response.ok ||
+!result.success
+){
+throw new Error(
+result.message ||
+"Operação não concluída."
+);
+}
+showProfileMessage(
+recipeLibraryMessage,
+result.message,
+"success"
+);
+profileEditorDirty=false;
+await updateData();
+if(endpoint==="/recipe/load"){
+switchPage("profiles");
+}
+}catch(error){
+showProfileMessage(
+recipeLibraryMessage,
+error.message ||
+"Falha de comunicação.",
+"error"
+);
+}
+}
+function renderRecipeLibrary(){
+if(
+!recipeLibraryData ||
+!Array.isArray(
+recipeLibraryData.recipes
+)
+){
+return;
+}
+recipeGrid.innerHTML="";
+recipeLibraryData.recipes.forEach(
+(recipe)=>{
+const card=
+document.createElement("div");
+card.className=
+"recipe-card"+
+(
+recipe.used
+? ""
+: " empty"
+);
+if(!recipe.used){
+card.innerHTML=`
+<div class="recipe-card-head">
+<span class="recipe-card-title">
+Slot ${recipe.slot+1}
+</span>
+<span class="recipe-slot">
+Vazio
+</span>
+</div>
+<div class="recipe-stage-preview">
+Salve uma receita neste slot pelo editor de perfil.
+</div>
+`;
+recipeGrid.appendChild(card);
+return;
+}
+const preview=
+recipe.stages
+.slice(0,3)
+.map(
+(stage,index)=>
+`Etapa ${index+1}: `+
+Number(
+stage.temperature
+).toFixed(1)+
+" °C · "+
+formatDuration(
+stage.durationSeconds
+)
+)
+.join("<br>");
+card.innerHTML=`
+<div class="recipe-card-head">
+<span class="recipe-card-title">
+${recipe.name}
+</span>
+<span class="recipe-slot">
+Slot ${recipe.slot+1}
+</span>
+</div>
+<div class="recipe-stage-preview">
+${preview}
+${
+recipe.stageCount>3
+? "<span>+"+
+(recipe.stageCount-3)+
+" etapa(s)</span>"
+: ""
+}
+</div>
+<div class="recipe-card-actions">
+<button
+class="secondary-button recipe-load"
+type="button"
+>
+CARREGAR
+</button>
+<button
+class="save-button recipe-start"
+type="button"
+>
+INICIAR
+</button>
+<button
+class="danger-button recipe-delete"
+type="button"
+>
+EXCLUIR
+</button>
+</div>
+`;
+card
+.querySelector(
+".recipe-load"
+)
+.addEventListener(
+"click",
+()=>recipeAction(
+"/recipe/load",
+recipe.slot
+)
+);
+card
+.querySelector(
+".recipe-start"
+)
+.addEventListener(
+"click",
+()=>recipeAction(
+"/recipe/start",
+recipe.slot,
+"Iniciar esta receita agora?"
+)
+);
+card
+.querySelector(
+".recipe-delete"
+)
+.addEventListener(
+"click",
+()=>recipeAction(
+"/recipe/delete",
+recipe.slot,
+"Excluir esta receita da biblioteca?"
+)
+);
+recipeGrid.appendChild(card);
+}
+);
+}
+function parseControllerJson(rawText){
+let text=String(
+rawText==null
+? ""
+: rawText
+);
+/*
+Remove BOM e caracteres de controle que
+possam aparecer antes/depois do JSON.
+*/
+text=text
+.replace(/^\uFEFF/,"")
+.replace(/^[\u0000-\u001F]+/,"")
+.replace(/[\u0000-\u001F]+$/,"")
+.trim();
+try{
+return JSON.parse(text);
+}catch(firstError){
+/*
+Caso alguma mensagem extra seja recebida
+junto da resposta, tenta extrair somente
+o primeiro objeto JSON completo.
+*/
+const objectStart=
+text.indexOf("{");
+const objectEnd=
+text.lastIndexOf("}");
+if(
+objectStart>=0 &&
+objectEnd>objectStart
+){
+const candidate=
+text.slice(
+objectStart,
+objectEnd+1
+);
+return JSON.parse(
+candidate
+);
+}
+throw new Error(
+"Resposta inválida do controlador: "+
+(
+text.length>120
+? text.slice(0,120)+"..."
+: text
+)
+);
+}
+}
+async function readControllerJson(response){
+const rawText=
+await response.text();
+return parseControllerJson(
+rawText
+);
+}
+function formatBytes(bytes){
+const value=Number(bytes)||0;
+if(value>=1024*1024){
+return (
+value/
+(1024*1024)
+).toFixed(2)+" MB";
+}
+if(value>=1024){
+return (
+value/1024
+).toFixed(1)+" KB";
+}
+return value+" B";
+}
+function formatSensorReading(
+value,
+connected
+){
+if(!connected||value==null){
+return "--";
+}
+
+return Number(value).toFixed(2)+" °C";
+}
+
+function updateCalibrationInterface(data){
+const refrigeratorConnected=
+Boolean(data.sensorConnected);
+
+const thermalWellConnected=
+Boolean(data.thermalWellConnected);
+
+refrigeratorCalibrationStatus.textContent=
+refrigeratorConnected
+?"CONECTADO"
+:"DESCONECTADO";
+
+refrigeratorCalibrationStatus.classList.toggle(
+"connected",
+refrigeratorConnected
+);
+
+thermalWellCalibrationStatus.textContent=
+thermalWellConnected
+?"CONECTADO"
+:"DESCONECTADO";
+
+thermalWellCalibrationStatus.classList.toggle(
+"connected",
+thermalWellConnected
+);
+
+refrigeratorRawReading.textContent=
+formatSensorReading(
+data.refrigeratorRawTemperature,
+refrigeratorConnected
+);
+
+refrigeratorCorrectedReading.textContent=
+formatSensorReading(
+data.temperature,
+refrigeratorConnected
+);
+
+thermalWellRawReading.textContent=
+formatSensorReading(
+data.thermalWellRawTemperature,
+thermalWellConnected
+);
+
+thermalWellCorrectedReading.textContent=
+formatSensorReading(
+data.thermalWellTemperature,
+thermalWellConnected
+);
+
+if(!calibrationFormInitialized){
+refrigeratorOffsetInput.value=
+Number(
+data.refrigeratorOffset||0
+).toFixed(2);
+
+thermalWellOffsetInput.value=
+Number(
+data.thermalWellOffset||0
+).toFixed(2);
+
+calibrationFormInitialized=true;
+}
+}
+
+async function saveCalibration(event){
+event.preventDefault();
+
+const refrigeratorOffset=
+Number(
+refrigeratorOffsetInput.value
+);
+
+const thermalWellOffset=
+Number(
+thermalWellOffsetInput.value
+);
+
+if(
+!Number.isFinite(refrigeratorOffset)||
+!Number.isFinite(thermalWellOffset)||
+refrigeratorOffset<-10||
+refrigeratorOffset>10||
+thermalWellOffset<-10||
+thermalWellOffset>10
+){
+showProfileMessage(
+calibrationMessage,
+"Use offsets entre -10,00 e +10,00 °C.",
+"error"
+);
+return;
+}
+
+const body=new URLSearchParams();
+
+body.append(
+"refrigeratorOffset",
+refrigeratorOffset.toFixed(2)
+);
+
+body.append(
+"thermalWellOffset",
+thermalWellOffset.toFixed(2)
+);
+
+saveCalibrationButton.disabled=true;
+saveCalibrationButton.textContent="SALVANDO...";
+
+try{
+const response=await fetch(
+"/calibration/save",
+{
+method:"POST",
+headers:{
+"Content-Type":
+"application/x-www-form-urlencoded"
+},
+body:body.toString()
+}
+);
+
+const result=
+await readControllerJson(response);
+
+if(!response.ok||!result.success){
+throw new Error(
+result.message||
+"Falha ao salvar a calibração."
+);
+}
+
+showProfileMessage(
+calibrationMessage,
+result.message,
+"success"
+);
+
+calibrationFormInitialized=false;
+await updateData();
+}catch(error){
+showProfileMessage(
+calibrationMessage,
+error.message||
+"Falha de comunicação.",
+"error"
+);
+}finally{
+saveCalibrationButton.disabled=false;
+saveCalibrationButton.textContent=
+"SALVAR CALIBRAÇÃO";
+}
+}
+
+async function resetCalibration(){
+if(
+!window.confirm(
+"Zerar o offset dos dois sensores?"
+)
+){
+return;
+}
+
+try{
+const response=await fetch(
+"/calibration/reset",
+{method:"POST"}
+);
+
+const result=
+await readControllerJson(response);
+
+if(!response.ok||!result.success){
+throw new Error(
+result.message||
+"Falha ao zerar a calibração."
+);
+}
+
+showProfileMessage(
+calibrationMessage,
+result.message,
+"success"
+);
+
+calibrationFormInitialized=false;
+await updateData();
+}catch(error){
+showProfileMessage(
+calibrationMessage,
+error.message||
+"Falha de comunicação.",
+"error"
+);
+}
+}
+
+function formatCloudDate(epoch){
+const value=Number(epoch)||0;
+
+if(value<=0){return "--";}
+
+return new Date(value*1000).toLocaleString(
+"pt-BR",
+{
+day:"2-digit",
+month:"2-digit",
+year:"numeric",
+hour:"2-digit",
+minute:"2-digit",
+second:"2-digit"
+}
+);
+}
+
+function showCloudMessage(
+element,
+message,
+type
+){
+if(cloudMessageTimer){
+clearTimeout(cloudMessageTimer);
+}
+
+element.textContent=message;
+element.className="message "+type;
+
+cloudMessageTimer=setTimeout(()=>{
+element.className="message";
+},5000);
+}
+
+function updateCloudInterface(cloudData){
+if(!cloudData){return;}
+
+cloudStatus.textContent=
+cloudData.status||"DESCONHECIDO";
+
+cloudStatus.className=
+cloudData.online
+?"wifi-connected"
+:"wifi-disconnected";
+
+cloudDeviceId.textContent=
+cloudData.deviceId||"--";
+
+cloudOnline.textContent=
+cloudData.online
+?"ONLINE"
+:"OFFLINE";
+
+cloudOnline.className=
+cloudData.online
+?"wifi-connected"
+:"wifi-disconnected";
+
+cloudLastSuccess.textContent=
+formatCloudDate(
+cloudData.lastSuccessEpoch
+);
+
+cloudLastHttp.textContent=
+Number(cloudData.lastHttpCode)>0
+?String(cloudData.lastHttpCode)
+:"--";
+
+if(cloudData.requestInProgress){
+cloudNextAttempt.textContent="enviando";
+}else if(!cloudData.enabled){
+cloudNextAttempt.textContent="--";
+}else if(Number(cloudData.nextAttemptSeconds)>0){
+cloudNextAttempt.textContent=
+"em "+cloudData.nextAttemptSeconds+" s";
+}else{
+cloudNextAttempt.textContent="agora";
+}
+
+cloudTokenHint.textContent=
+cloudData.tokenHint||"--------";
+
+cloudLastError.textContent=
+cloudData.lastError||"--";
+
+cloudSyncButton.disabled=
+!cloudData.enabled||
+!cloudData.configured||
+cloudData.requestInProgress;
+
+cloudTokenButton.disabled=
+cloudData.requestInProgress;
+
+if(
+!cloudFormInitialized&&
+!cloudFormDirty
+){
+cloudEnabledInput.checked=
+Boolean(cloudData.enabled);
+
+cloudUrlInput.value=
+cloudData.telemetryUrl||"";
+
+cloudIntervalInput.value=
+Number(
+cloudData.intervalSeconds||60
+);
+
+cloudUrlInput.required=
+cloudEnabledInput.checked;
+
+cloudFormInitialized=true;
+}
+}
+
+async function saveCloudConfiguration(event){
+event.preventDefault();
+
+const enabled=
+cloudEnabledInput.checked;
+
+const url=
+cloudUrlInput.value.trim();
+
+const interval=
+Number(cloudIntervalInput.value);
+
+if(
+enabled&&
+!url.startsWith("https://")
+){
+showCloudMessage(
+cloudSaveMessage,
+"Informe uma URL que comece com https://.",
+"error"
+);
+return;
+}
+
+if(
+!Number.isInteger(interval)||
+interval<5||
+interval>3600
+){
+showCloudMessage(
+cloudSaveMessage,
+"O intervalo deve estar entre 5 e 3600 segundos.",
+"error"
+);
+return;
+}
+
+const body=new URLSearchParams();
+body.append("enabled",enabled?"1":"0");
+body.append("url",url);
+body.append("interval",String(interval));
+
+cloudSaveButton.disabled=true;
+cloudSaveButton.textContent="SALVANDO...";
+
+try{
+const response=await fetch(
+"/cloud/save",
+{
+method:"POST",
+headers:{
+"Content-Type":
+"application/x-www-form-urlencoded"
+},
+body:body.toString()
+}
+);
+
+const result=
+await readControllerJson(response);
+
+if(!response.ok||!result.success){
+throw new Error(
+result.message||
+"Falha ao salvar a nuvem."
+);
+}
+
+cloudFormDirty=false;
+cloudFormInitialized=false;
+
+showCloudMessage(
+cloudSaveMessage,
+result.message,
+"success"
+);
+
+await updateData();
+}catch(error){
+showCloudMessage(
+cloudSaveMessage,
+error.message||
+"Falha de comunicação.",
+"error"
+);
+}finally{
+cloudSaveButton.disabled=false;
+cloudSaveButton.textContent=
+"SALVAR CONFIGURAÇÃO CLOUD";
+}
+}
+
+async function syncCloudNow(){
+try{
+const response=await fetch(
+"/cloud/sync",
+{method:"POST"}
+);
+
+const result=
+await readControllerJson(response);
+
+if(!response.ok||!result.success){
+throw new Error(
+result.message||
+"Falha ao sincronizar."
+);
+}
+
+showCloudMessage(
+cloudActionMessage,
+result.message,
+"success"
+);
+
+await updateData();
+}catch(error){
+showCloudMessage(
+cloudActionMessage,
+error.message||
+"Falha de comunicação.",
+"error"
+);
+}
+}
+
+async function regenerateCloudToken(){
+if(
+!window.confirm(
+"Renovar o token? O vínculo atual com a nuvem deixará de funcionar."
+)
+){
+return;
+}
+
+try{
+const response=await fetch(
+"/cloud/token/regenerate",
+{method:"POST"}
+);
+
+const result=
+await readControllerJson(response);
+
+if(!response.ok||!result.success){
+throw new Error(
+result.message||
+"Falha ao renovar o token."
+);
+}
+
+showCloudMessage(
+cloudActionMessage,
+result.message,
+"success"
+);
+
+await updateData();
+}catch(error){
+showCloudMessage(
+cloudActionMessage,
+error.message||
+"Falha de comunicação.",
+"error"
+);
+}
+}
+
+function updateAlarmInterface(alarmData){
+if(!alarmData){return;}
+
+alarmDashboard.classList.toggle(
+"active",
+alarmData.active
+);
+
+alarmDashboardSummary.textContent=
+alarmData.summary||
+"Nenhum alarme";
+
+alarmDashboardCount.textContent=
+String(alarmData.count||0);
+
+acknowledgeAlarmsButton.disabled=
+!alarmData.active||
+!alarmData.unacknowledged;
+
+alarmList.innerHTML="";
+
+(alarmData.items||[]).forEach((alarm)=>{
+const item=document.createElement("div");
+item.className=
+"alarm-item"+
+(alarm.active?" active":"");
+
+let detail="Normal";
+if(alarm.active){
+detail=
+alarm.acknowledged
+?"Ativo · reconhecido"
+:"Ativo · requer atenção";
+
+if(alarm.activeSeconds>0){
+detail+=" · "+formatDuration(alarm.activeSeconds);
+}
+}
+
+item.innerHTML=`
+<div class="alarm-item-copy">
+<strong>${alarm.name}</strong>
+<span>${detail}</span>
+</div>
+<span class="alarm-state">
+${alarm.active?"ALARME":"NORMAL"}
+</span>
+`;
+
+alarmList.appendChild(item);
+});
+
+if(
+!alarmFormInitialized&&
+alarmData.configuration
+){
+const config=alarmData.configuration;
+
+sensorAlarmEnabled.checked=
+Boolean(config.sensorEnabled);
+highAlarmEnabled.checked=
+Boolean(config.highEnabled);
+lowAlarmEnabled.checked=
+Boolean(config.lowEnabled);
+responseAlarmEnabled.checked=
+Boolean(config.responseEnabled);
+
+highAlarmLimit.value=
+Number(config.highLimit).toFixed(1);
+lowAlarmLimit.value=
+Number(config.lowLimit).toFixed(1);
+responseAlarmMinutes.value=
+Math.round(
+Number(config.responseTimeoutSeconds)/60
+);
+minimumThermalChange.value=
+Number(config.minimumChange).toFixed(1);
+
+alarmFormInitialized=true;
+}
+}
+
+async function saveAlarmConfiguration(event){
+event.preventDefault();
+
+const highLimit=Number(highAlarmLimit.value);
+const lowLimit=Number(lowAlarmLimit.value);
+const responseMinutes=Number(responseAlarmMinutes.value);
+const minimumChange=Number(minimumThermalChange.value);
+
+if(
+!Number.isFinite(highLimit)||
+!Number.isFinite(lowLimit)||
+highLimit<=lowLimit||
+!Number.isFinite(responseMinutes)||
+responseMinutes<1||
+responseMinutes>1440||
+!Number.isFinite(minimumChange)||
+minimumChange<0.1||
+minimumChange>10
+){
+showProfileMessage(
+alarmSaveMessage,
+"Revise os limites e os tempos configurados.",
+"error"
+);
+return;
+}
+
+const body=new URLSearchParams();
+body.append("sensorEnabled",sensorAlarmEnabled.checked?"1":"0");
+body.append("highEnabled",highAlarmEnabled.checked?"1":"0");
+body.append("lowEnabled",lowAlarmEnabled.checked?"1":"0");
+body.append("responseEnabled",responseAlarmEnabled.checked?"1":"0");
+body.append("highLimit",highLimit.toFixed(1));
+body.append("lowLimit",lowLimit.toFixed(1));
+body.append("responseMinutes",responseMinutes.toString());
+body.append("minimumChange",minimumChange.toFixed(1));
+
+saveAlarmButton.disabled=true;
+saveAlarmButton.textContent="SALVANDO...";
+
+try{
+const response=await fetch(
+"/alarms/save",
+{
+method:"POST",
+headers:{
+"Content-Type":"application/x-www-form-urlencoded"
+},
+body:body.toString()
+}
+);
+
+const result=await readControllerJson(response);
+
+if(!response.ok||!result.success){
+throw new Error(
+result.message||
+"Falha ao salvar alarmes."
+);
+}
+
+showProfileMessage(
+alarmSaveMessage,
+result.message,
+"success"
+);
+
+alarmFormInitialized=false;
+await updateData();
+}catch(error){
+showProfileMessage(
+alarmSaveMessage,
+error.message||
+"Falha de comunicação.",
+"error"
+);
+}finally{
+saveAlarmButton.disabled=false;
+saveAlarmButton.textContent="SALVAR ALARMES";
+}
+}
+
+async function acknowledgeAlarms(){
+try{
+const response=await fetch(
+"/alarms/acknowledge",
+{method:"POST"}
+);
+
+const result=await readControllerJson(response);
+
+if(!response.ok||!result.success){
+throw new Error(
+result.message||
+"Falha ao reconhecer alarmes."
+);
+}
+
+showProfileMessage(
+alarmActionMessage,
+result.message,
+"success"
+);
+
+await updateData();
+}catch(error){
+showProfileMessage(
+alarmActionMessage,
+error.message||
+"Falha de comunicação.",
+"error"
+);
+}
+}
+
+async function updateEvents(){
+try{
+const response=await fetch(
+"/events",
+{cache:"no-store"}
+);
+const result=await readControllerJson(response);
+
+if(!response.ok){
+throw new Error(
+"Falha ao carregar eventos."
+);
+}
+
+eventData=
+Array.isArray(result.events)
+?result.events
+:[];
+
+renderEvents();
+}catch(error){
+eventList.innerHTML=
+`<div class="event-empty">${error.message}</div>`;
+}
+}
+
+function renderEvents(){
+const selected=
+eventFilter.value;
+
+const filtered=
+selected==="all"
+?eventData
+:eventData.filter(
+(event)=>event.category===selected
+);
+
+if(filtered.length===0){
+eventList.innerHTML=
+'<div class="event-empty">Nenhum evento encontrado.</div>';
+return;
+}
+
+eventList.innerHTML="";
+
+filtered.forEach((event)=>{
+const item=document.createElement("div");
+item.className="event-item";
+
+const safeCategory=
+String(event.category||"Outro");
+
+const safeDate=
+String(event.dateTime||"--");
+
+const safeMessage=
+String(event.message||"");
+
+item.innerHTML=`
+<div class="event-meta">
+<span class="event-category">${safeCategory}</span>
+<span class="event-date">${safeDate}</span>
+</div>
+<div class="event-message">${safeMessage}</div>
+`;
+
+eventList.appendChild(item);
+});
+}
+
+async function clearEvents(){
+if(
+!window.confirm(
+"Limpar todos os eventos armazenados?"
+)
+){
+return;
+}
+
+try{
+const response=await fetch(
+"/events/clear",
+{method:"POST"}
+);
+const result=await readControllerJson(response);
+
+if(!response.ok||!result.success){
+throw new Error(
+result.message||
+"Falha ao limpar eventos."
+);
+}
+
+showProfileMessage(
+eventMessage,
+result.message,
+"success"
+);
+
+await updateEvents();
+}catch(error){
+showProfileMessage(
+eventMessage,
+error.message||
+"Falha de comunicação.",
+"error"
+);
+}
+}
+
+function formatDuration(seconds){
+seconds=Math.max(0,Number(seconds)||0);
+const days=Math.floor(seconds/86400);
+const hours=Math.floor((seconds%86400)/3600);
+const minutes=Math.floor((seconds%3600)/60);
+if(days>0){
+return days+"d "+hours+"h";
+}
+if(hours>0){
+return hours+"h "+minutes+"min";
+}
+if(minutes>0){
+return minutes+"min";
+}
+return Math.round(seconds)+"s";
+}
+function showProfileMessage(element,message,type){
+element.textContent=message;
+element.className="message "+type;
+}
+function chooseDurationRepresentation(
+durationSeconds
+){
+const seconds=Math.max(
+60,
+Number(durationSeconds)||3600
+);
+if(
+seconds>=86400 &&
+Math.abs(
+seconds/86400-
+Math.round(seconds/86400)
+)<0.000001
+){
+return {
+value:seconds/86400,
+unit:"days"
+};
+}
+if(
+seconds>=3600 &&
+Math.abs(
+seconds/3600-
+Math.round(seconds/3600)
+)<0.000001
+){
+return {
+value:seconds/3600,
+unit:"hours"
+};
+}
+return {
+value:seconds/60,
+unit:"minutes"
+};
+}
+function durationToSeconds(
+value,
+unit
+){
+const numericValue=
+Number(value);
+if(!Number.isFinite(numericValue)){
+return NaN;
+}
+const multipliers={
+minutes:60,
+hours:3600,
+days:86400
+};
+return numericValue*
+(
+multipliers[unit]||
+3600
+);
+}
+function createProfileStage(
+temperature=18,
+durationSeconds=86400
+){
+const currentCount=
+profileStageList.children.length;
+if(currentCount>=8){
+showProfileMessage(
+profileEditorMessage,
+"O máximo é de 8 etapas.",
+"error"
+);
+return;
+}
+const duration=
+chooseDurationRepresentation(
+durationSeconds
+);
+const stage=document.createElement("div");
+stage.className="profile-stage";
+stage.innerHTML=`
+<div class="profile-stage-head">
+<span class="profile-stage-title">
+Etapa ${currentCount+1}
+</span>
+<button
+class="profile-stage-remove"
+type="button"
+>
+REMOVER
+</button>
+</div>
+<div class="profile-stage-grid">
+<div>
+<label>Temperatura</label>
+<div class="input-wrap">
+<input
+class="profile-temperature"
+type="number"
+min="-10"
+max="40"
+step="0.1"
+value="${Number(temperature).toFixed(1)}"
+required
+>
+<span class="input-unit">°C</span>
+</div>
+</div>
+<div>
+<label>Duração</label>
+<div class="duration-control">
+<input
+class="profile-duration"
+type="number"
+min="0.01"
+step="0.01"
+value="${Number(duration.value).toFixed(2)}"
+required
+>
+<select
+class="duration-unit-select"
+aria-label="Unidade da duração"
+>
+<option
+value="minutes"
+${duration.unit==="minutes"?"selected":""}
+>
+minutos
+</option>
+<option
+value="hours"
+${duration.unit==="hours"?"selected":""}
+>
+horas
+</option>
+<option
+value="days"
+${duration.unit==="days"?"selected":""}
+>
+dias
+</option>
+</select>
+</div>
+<span class="duration-help">
+Mínimo de 1 minuto e máximo de 90 dias.
+</span>
+</div>
+</div>
+`;
+stage
+.querySelector(
+".profile-stage-remove"
+)
+.addEventListener(
+"click",
+()=>{
+stage.remove();
+renumberProfileStages();
+profileEditorDirty=true;
+}
+);
+stage
+.querySelectorAll(
+"input,select"
+)
+.forEach(
+(element)=>{
+element.addEventListener(
+"input",
+()=>{
+profileEditorDirty=true;
+}
+);
+element.addEventListener(
+"change",
+()=>{
+profileEditorDirty=true;
+}
+);
+}
+);
+profileStageList.appendChild(stage);
+profileEditorDirty=true;
+}
+function renumberProfileStages(){
+Array.from(
+profileStageList.children
+).forEach(
+(stage,index)=>{
+stage
+.querySelector(
+".profile-stage-title"
+)
+.textContent=
+"Etapa "+(index+1);
+}
+);
+}
+function loadProfileEditor(profile){
+if(
+profileEditorDirty ||
+profile.active
+){
+return;
+}
+profileStageList.innerHTML="";
+profileNameInput.value=
+profile.configured
+? profile.name
+: "";
+if(
+profile.configured &&
+Array.isArray(profile.stages)
+){
+profile.stages.forEach(
+(stage)=>{
+createProfileStage(
+stage.temperature,
+stage.durationSeconds
+);
+}
+);
+}else{
+createProfileStage(
+18,
+3*86400
+);
+createProfileStage(
+20,
+4*86400
+);
+createProfileStage(
+2,
+2*86400
+);
+}
+profileEditorDirty=false;
+profileEditorInitialized=true;
+}
+function updateProfileDashboard(
+profile,
+clockSynchronized
+){
+if(!profile){
+return;
+}
+dashboardProfileName.textContent=
+profile.configured
+? profile.name
+: "--";
+dashboardProfileState.textContent=
+profile.state;
+dashboardProfileStage.textContent=
+profile.active
+? (
+(profile.currentStage+1)+
+" / "+
+profile.stageCount
+)
+: "--";
+dashboardProfileTarget.textContent=
+profile.active
+? Number(
+profile.currentTarget
+).toFixed(1)+" °C"
+: "--";
+dashboardStageRemaining.textContent=
+"Etapa: "+
+(
+profile.active
+? formatDuration(
+profile.remainingSeconds
+)
+: "--"
+);
+dashboardTotalRemaining.textContent=
+"Total: "+
+(
+profile.active
+? formatDuration(
+profile.totalRemainingSeconds
+)
+: "--"
+);
+profileNameDisplay.textContent=
+profile.configured
+? profile.name
+: "--";
+profileStateDisplay.textContent=
+profile.state;
+profileStageDisplay.textContent=
+profile.active
+? (
+(profile.currentStage+1)+
+" / "+
+profile.stageCount
+)
+: "--";
+let progress=0;
+if(
+profile.active &&
+profile.stageCount>0
+){
+const currentStage=
+profile.stages[
+profile.currentStage
+];
+if(currentStage){
+const duration=
+Number(
+currentStage.durationSeconds
+)||1;
+progress=Math.min(
+100,
+Math.max(
+0,
+Number(
+profile.elapsedSeconds
+)/
+duration*
+100
+)
+);
+}
+profileProgressText.textContent=
+"Etapa atual: "+
+Number(
+profile.currentTarget
+).toFixed(1)+
+" °C · restante "+
+formatDuration(
+profile.remainingSeconds
+)+
+" · total "+
+formatDuration(
+profile.totalRemainingSeconds
+);
+}else if(profile.completed){
+progress=100;
+profileProgressText.textContent=
+"Perfil concluído.";
+}else{
+profileProgressText.textContent=
+profile.configured
+? "Perfil pronto para iniciar."
+: "Nenhum perfil salvo.";
+}
+profileProgressBar.style.width=
+progress+"%";
+dashboardProfileProgressBar.style.width=
+progress+"%";
+profileStartButton.disabled=
+!profile.configured ||
+profile.active ||
+!clockSynchronized;
+profilePauseButton.disabled=
+!profile.active ||
+profile.paused;
+profileResumeButton.disabled=
+!profile.paused ||
+!clockSynchronized;
+profileCancelButton.disabled=
+!profile.active;
+profileNameInput.disabled=
+profile.active;
+addProfileStageButton.disabled=
+profile.active;
+saveProfileButton.disabled=
+profile.active;
+Array.from(
+profileStageList.querySelectorAll(
+"input,button"
+)
+).forEach(
+(element)=>{
+element.disabled=
+profile.active;
+}
+);
+if(
+!profileEditorInitialized ||
+!profileEditorDirty
+){
+loadProfileEditor(profile);
+}
+}
+async function profileAction(
+endpoint,
+successMessage
+){
+try{
+const response=await fetch(
+endpoint,
+{
+method:"POST"
+}
+);
+const result=await readControllerJson(response);
+if(
+!response.ok ||
+!result.success
+){
+throw new Error(
+result.message ||
+"A operação falhou."
+);
+}
+showProfileMessage(
+profileRuntimeMessage,
+successMessage ||
+result.message,
+"success"
+);
+profileEditorDirty=false;
+await updateData();
+}catch(error){
+showProfileMessage(
+profileRuntimeMessage,
+error.message ||
+"Falha de comunicação.",
+"error"
+);
+}
+}
+async function saveProfile(event){
+event.preventDefault();
+const name=
+profileNameInput.value.trim();
+const stages=Array.from(
+profileStageList.children
+);
+if(
+name.length===0 ||
+stages.length===0
+){
+showProfileMessage(
+profileEditorMessage,
+"Informe o nome e ao menos uma etapa.",
+"error"
+);
+return;
+}
+const body=new URLSearchParams();
+body.append("name",name);
+body.append(
+"count",
+String(stages.length)
+);
+for(
+let index=0;
+index<stages.length;
+index++
+){
+const temperature=
+Number(
+stages[index]
+.querySelector(
+".profile-temperature"
+)
+.value
+);
+const durationValue=
+stages[index]
+.querySelector(
+".profile-duration"
+)
+.value;
+const durationUnit=
+stages[index]
+.querySelector(
+".duration-unit-select"
+)
+.value;
+const durationSeconds=
+durationToSeconds(
+durationValue,
+durationUnit
+);
+if(
+!Number.isFinite(temperature) ||
+temperature<-10 ||
+temperature>40 ||
+!Number.isFinite(durationSeconds) ||
+durationSeconds<60 ||
+durationSeconds>
+90*24*60*60
+){
+showProfileMessage(
+profileEditorMessage,
+"Revise os valores. A duração deve ficar entre 1 minuto e 90 dias.",
+"error"
+);
+return;
+}
+body.append(
+"temperature"+index,
+temperature.toFixed(1)
+);
+body.append(
+"durationSeconds"+index,
+Math.round(
+durationSeconds
+).toString()
+);
+}
+saveProfileButton.disabled=true;
+saveProfileButton.textContent=
+"SALVANDO...";
+try{
+const response=await fetch(
+"/profile/save",
+{
+method:"POST",
+headers:{
+"Content-Type":
+"application/x-www-form-urlencoded"
+},
+body:body.toString()
+}
+);
+const result=await readControllerJson(response);
+if(
+!response.ok ||
+!result.success
+){
+throw new Error(
+result.message ||
+"Falha ao salvar."
+);
+}
+profileEditorDirty=false;
+showProfileMessage(
+profileEditorMessage,
+result.message,
+"success"
+);
+await updateData();
+}catch(error){
+showProfileMessage(
+profileEditorMessage,
+error.message ||
+"Falha de comunicação.",
+"error"
+);
+}finally{
+saveProfileButton.disabled=false;
+saveProfileButton.textContent=
+"SALVAR PERFIL";
+}
+}
+function resetFirmwareInspection(){
+inspectedFirmware=null;
+firmwareInspection.classList.remove("visible");
+firmwareUploadButton.disabled=true;
+detectedProduct.textContent="--";
+detectedVersion.textContent="--";
+detectedBoard.textContent="--";
+firmwareCompatibility.textContent=
+"AGUARDANDO ANÁLISE";
+firmwareCompatibility.className=
+"compatibility-warning";
+}
+function compareVersions(first,second){
+const a=String(first)
+.split(".")
+.map((value)=>Number(value)||0);
+const b=String(second)
+.split(".")
+.map((value)=>Number(value)||0);
+const length=Math.max(a.length,b.length);
+for(let index=0;index<length;index++){
+const av=a[index]||0;
+const bv=b[index]||0;
+if(av>bv) return 1;
+if(av<bv) return -1;
+}
+return 0;
+}
+async function inspectFirmwareFile(){
+resetFirmwareInspection();
+const file=firmwareFile.files[0];
+if(!file){return;}
+if(!file.name.toLowerCase().endsWith(".bin")){
+firmwareInspection.classList.add("visible");
+firmwareCompatibility.textContent="ARQUIVO NÃO É .BIN";
+firmwareCompatibility.className="compatibility-error";
+return;
+}
+firmwareInspection.classList.add("visible");
+firmwareCompatibility.textContent="ANALISANDO...";
+firmwareCompatibility.className="compatibility-warning";
+try{
+const buffer=await file.arrayBuffer();
+const bytes=new Uint8Array(buffer);
+
+/*
+Um firmware de aplicação ESP32 começa com o byte mágico 0xE9.
+Essa verificação é mais confiável que procurar um texto dentro
+do binário, pois o linker pode reorganizar ou eliminar strings.
+*/
+if(bytes.length<32||bytes[0]!==0xE9){
+throw new Error("O arquivo não possui um cabeçalho de firmware ESP32 válido.");
+}
+
+const markerStartText="MALTWORKS_FW_META:";
+const markerEndText=":MALTWORKS_FW_META_END";
+const decoder=new TextDecoder("utf-8",{fatal:false});
+const fileText=decoder.decode(bytes);
+const markerStart=fileText.indexOf(markerStartText);
+const markerEnd=fileText.indexOf(
+markerEndText,
+markerStart+markerStartText.length
+);
+
+let metadata=null;
+
+if(markerStart>=0&&markerEnd>markerStart){
+try{
+metadata=JSON.parse(
+fileText.slice(
+markerStart+markerStartText.length,
+markerEnd
+)
+);
+}catch(error){
+metadata=null;
+}
+}
+
+if(metadata){
+inspectedFirmware={
+product:metadata.product||"MaltworksController",
+version:metadata.version||"desconhecida",
+boardFamily:metadata.boardFamily||"ESP32",
+metadataFound:true
+};
+detectedProduct.textContent=inspectedFirmware.product;
+detectedVersion.textContent=inspectedFirmware.version;
+detectedBoard.textContent=inspectedFirmware.boardFamily;
+
+if(
+inspectedFirmware.product!==currentFirmwareProduct||
+inspectedFirmware.boardFamily!==currentFirmwareBoardFamily
+){
+firmwareCompatibility.textContent="INCOMPATÍVEL";
+firmwareCompatibility.className="compatibility-error";
+firmwareUploadButton.disabled=true;
+return;
+}
+
+const versionComparison=compareVersions(
+inspectedFirmware.version,
+firmwareVersion.textContent
+);
+
+if(versionComparison<0){
+firmwareCompatibility.textContent="ESP32 VÁLIDO · VERSÃO ANTERIOR";
+firmwareCompatibility.className="compatibility-warning";
+}else if(versionComparison===0){
+firmwareCompatibility.textContent="ESP32 VÁLIDO · MESMA VERSÃO";
+firmwareCompatibility.className="compatibility-warning";
+}else{
+firmwareCompatibility.textContent="ESP32 VÁLIDO · NOVA VERSÃO";
+firmwareCompatibility.className="compatibility-ok";
+}
+}else{
+/*
+O marcador Maltworks é informativo, não obrigatório.
+A biblioteca Update do ESP32 fará a validação definitiva
+da imagem durante a gravação.
+*/
+inspectedFirmware={
+product:currentFirmwareProduct,
+version:"não identificada",
+boardFamily:currentFirmwareBoardFamily,
+metadataFound:false
+};
+detectedProduct.textContent="Firmware ESP32";
+detectedVersion.textContent="Não identificada";
+detectedBoard.textContent="ESP32";
+firmwareCompatibility.textContent="ESP32 VÁLIDO · SEM METADADOS";
+firmwareCompatibility.className="compatibility-warning";
+}
+
+const preflightResponse=await fetch(
+"/firmware/preflight?size="+encodeURIComponent(file.size),
+{cache:"no-store"}
+);
+const preflight=await readControllerJson(preflightResponse);
+
+if(!preflightResponse.ok||!preflight.success){
+firmwareCompatibility.textContent="SEM ESPAÇO PARA OTA";
+firmwareCompatibility.className="compatibility-error";
+firmwareUploadButton.disabled=true;
+throw new Error(
+preflight.message+
+" Arquivo: "+formatBytes(preflight.fileSize)+
+". Disponível: "+formatBytes(preflight.availableSize)+"."
+);
+}
+
+firmwareCompatibility.textContent+=" · OTA OK";
+firmwareUploadButton.disabled=false;
+}catch(error){
+inspectedFirmware=null;
+firmwareCompatibility.textContent="NÃO RECONHECIDO";
+firmwareCompatibility.className="compatibility-error";
+firmwareUploadButton.disabled=true;
+setFirmwareMessage(
+error.message||"Não foi possível analisar o arquivo.",
+"error"
+);
+}
+}
+
+function setFirmwareMessage(message,type){
+firmwareMessage.textContent=message;
+firmwareMessage.className="message "+type;
+}
+function uploadFirmware(event){
+event.preventDefault();
+const file=firmwareFile.files[0];
+if(!inspectedFirmware){
+setFirmwareMessage(
+"O arquivo ainda não foi analisado ou não é um firmware ESP32 válido.",
+"error"
+);
+return;
+}
+if(!file){
+setFirmwareMessage(
+"Selecione um arquivo .bin.",
+"error"
+);
+return;
+}
+if(
+!file.name.toLowerCase().endsWith(".bin")
+){
+setFirmwareMessage(
+"O arquivo selecionado precisa ter extensão .bin.",
+"error"
+);
+return;
+}
+const confirmed=window.confirm(
+"Instalar este firmware? As saídas serão desligadas e o controlador reiniciará."
+);
+if(!confirmed){
+return;
+}
+firmwareUploadButton.disabled=true;
+firmwareFile.disabled=true;
+firmwareUploadButtonText.textContent="ENVIANDO...";
+firmwareStatus.textContent="ATUALIZANDO";
+firmwareProgressShell.hidden=false;
+firmwareProgressText.hidden=false;
+firmwareProgressBar.style.width="0%";
+firmwareProgressText.textContent="0%";
+firmwareMessage.className="message";
+const formData=new FormData();
+formData.append("firmware",file);
+formData.append("size",String(file.size));
+const request=new XMLHttpRequest();
+request.open(
+"POST",
+"/firmware/update?size="+
+encodeURIComponent(file.size),
+true
+);
+request.upload.addEventListener(
+"progress",
+(progressEvent)=>{
+if(!progressEvent.lengthComputable){
+return;
+}
+const percent=Math.min(
+100,
+Math.round(
+progressEvent.loaded/
+progressEvent.total*
+100
+)
+);
+firmwareProgressBar.style.width=
+percent+"%";
+firmwareProgressText.textContent=
+percent+"%";
+}
+);
+request.addEventListener(
+"load",
+()=>{
+let result=null;
+try{
+result=parseControllerJson(
+request.responseText
+);
+}catch(error){
+result={
+success:false,
+message:
+error.message ||
+"Resposta inválida do controlador."
+};
+}
+if(
+request.status>=200 &&
+request.status<300 &&
+result.success
+){
+firmwareProgressBar.style.width="100%";
+firmwareProgressText.textContent="100%";
+firmwareUploadButtonText.textContent="REINICIANDO...";
+firmwareStatus.textContent="REINICIANDO";
+setFirmwareMessage(
+result.message,
+"success"
+);
+setTimeout(
+waitForController,
+5000
+);
+}else{
+firmwareUploadButton.disabled=false;
+firmwareFile.disabled=false;
+firmwareUploadButtonText.textContent="INSTALAR FIRMWARE";
+firmwareStatus.textContent="FALHA";
+setFirmwareMessage(
+result.message||
+"A atualização falhou. Consulte o Monitor Serial em 115200.",
+"error"
+);
+}
+}
+);
+request.addEventListener(
+"error",
+()=>{
+firmwareUploadButton.disabled=false;
+firmwareFile.disabled=false;
+firmwareUploadButtonText.textContent="INSTALAR FIRMWARE";
+firmwareStatus.textContent="FALHA";
+setFirmwareMessage(
+"A conexão foi interrompida durante o envio. Tente pelo IP da rede doméstica, mantenha o computador próximo ao roteador e confira o Monitor Serial.",
+"error"
+);
+}
+);
+request.send(formData);
+}
+async function waitForController(){
+try{
+const response=await fetch(
+"/api",
+{
+cache:"no-store"
+}
+);
+if(!response.ok){
+throw new Error();
+}
+window.location.reload();
+}catch(error){
+setTimeout(
+waitForController,
+2000
+);
+}
+}
+async function saveSettings(event){
+event.preventDefault();
+const setpoint=Number(setpointInput.value);
+const hysteresis=Number(hysteresisInput.value);
+if(!Number.isFinite(setpoint) || setpoint<-10 || setpoint>40){
+showMessage("O setpoint deve estar entre -10 e 40 °C.","error");
+return;
+}
+if(!Number.isFinite(hysteresis) || hysteresis<0.1 || hysteresis>5){
+showMessage("A histerese deve estar entre 0,1 e 5,0 °C.","error");
+return;
+}
+saveButton.disabled=true;
+saveButtonText.textContent="SALVANDO...";
+const body=new URLSearchParams();
+body.append("setpoint",setpoint.toFixed(1));
+body.append("hysteresis",hysteresis.toFixed(1));
+try{
+const response=await fetch("/save",{
+method:"POST",
+headers:{"Content-Type":"application/x-www-form-urlencoded"},
+body:body.toString()
+});
+const result=await readControllerJson(response);
+if(!response.ok || !result.success){
+throw new Error(result.message||"Não foi possível salvar.");
+}
+userEditing=false;
+showMessage(result.message,"success");
+await updateData();
+}catch(error){
+showMessage(error.message||"Falha de comunicação com o ESP32.","error");
+}finally{
+saveButton.disabled=false;
+saveButtonText.textContent="SALVAR CONFIGURAÇÕES";
+}
+}
+setpointInput.addEventListener("input",()=>userEditing=true);
+hysteresisInput.addEventListener("input",()=>userEditing=true);
+settingsForm.addEventListener("submit",saveSettings);
+alarmForm.addEventListener("submit",saveAlarmConfiguration);
+eventFilter.addEventListener("change",renderEvents);
+calibrationForm.addEventListener("submit",saveCalibration);
+resetCalibrationButton.addEventListener("click",resetCalibration);
+cloudForm.addEventListener("submit",saveCloudConfiguration);
+cloudSyncButton.addEventListener("click",syncCloudNow);
+cloudTokenButton.addEventListener("click",regenerateCloudToken);
+cloudEnabledInput.addEventListener("change",()=>{
+cloudFormDirty=true;
+cloudUrlInput.required=cloudEnabledInput.checked;
+});
+cloudUrlInput.addEventListener(
+"input",
+()=>cloudFormDirty=true
+);
+cloudIntervalInput.addEventListener(
+"input",
+()=>cloudFormDirty=true
+);
+clearEventsButton.addEventListener("click",clearEvents);
+acknowledgeAlarmsButton.addEventListener("click",acknowledgeAlarms);
+tabButtons.forEach(
+(button)=>{
+button.addEventListener(
+"click",
+()=>switchPage(
+button.dataset.page
+)
+);
+}
+);
+saveRecipeButton.addEventListener(
+"click",
+saveRecipeToLibrary
+);
+profileForm.addEventListener("submit",saveProfile);
+profileNameInput.addEventListener(
+"input",
+()=>profileEditorDirty=true
+);
+addProfileStageButton.addEventListener(
+"click",
+()=>createProfileStage()
+);
+profileStartButton.addEventListener(
+"click",
+()=>profileAction(
+"/profile/start",
+"Perfil iniciado."
+)
+);
+profilePauseButton.addEventListener(
+"click",
+()=>profileAction(
+"/profile/pause",
+"Perfil pausado."
+)
+);
+profileResumeButton.addEventListener(
+"click",
+()=>profileAction(
+"/profile/resume",
+"Perfil retomado."
+)
+);
+profileCancelButton.addEventListener(
+"click",
+()=>{
+if(
+window.confirm(
+"Cancelar o perfil em execução?"
+)
+){
+profileAction(
+"/profile/cancel",
+"Perfil cancelado."
+);
+}
+}
+);
+wifiForm.addEventListener("submit",saveWifi);
+firmwareForm.addEventListener("submit",uploadFirmware);
+firmwareFile.addEventListener("change",inspectFirmwareFile);
+wifiForgetButton.addEventListener("click",forgetWifi);
+rangeButtons.forEach((button)=>{
+button.addEventListener("click",()=>{
+selectedRangeSeconds=Number(button.dataset.range);
+rangeButtons.forEach((item)=>{
+item.classList.toggle(
+"active",
+item===button
+);
+});
+rangeLabel.textContent=
+"Visualizando "+
+formatRangeLabel(selectedRangeSeconds);
+drawChart();
+});
+});
+window.addEventListener("resize",drawChart);
+resetFirmwareInspection();
+switchPage("dashboard");
+updateData();
+updateHistory();
+updateEvents();
+setInterval(updateData,1000);
+setInterval(drawChart,1000);
+setInterval(updateHistory,15000);
+</script>
+</body>
+</html>
