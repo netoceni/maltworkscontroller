@@ -112,6 +112,10 @@ private:
   static constexpr size_t
     MAXIMUM_STAGE_PLAN_LENGTH = 220;
 
+  static constexpr uint32_t
+    WORKER_STACK_SIZE_BYTES =
+      16UL * 1024UL;
+
   struct TelemetryJob {
     char url[MAXIMUM_URL_LENGTH + 1];
     char token[TOKEN_HEX_LENGTH + 1];
@@ -188,6 +192,8 @@ private:
   QueueHandle_t telemetryQueue;
   mutable SemaphoreHandle_t stateMutex;
   TaskHandle_t workerTask;
+  TelemetryJob workerJob;
+  UBaseType_t minimumWorkerStackRemaining;
 
   static void workerTaskEntry(
     void* parameter

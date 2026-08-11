@@ -65,7 +65,11 @@ CloudModule::CloudModule(
   status(Status::CLOUD_DISABLED),
   telemetryQueue(nullptr),
   stateMutex(nullptr),
-  workerTask(nullptr) {
+  workerTask(nullptr),
+  workerJob({}),
+  minimumWorkerStackRemaining(
+    WORKER_STACK_SIZE_BYTES
+  ) {
 }
 
 bool CloudModule::begin() {
@@ -821,17 +825,40 @@ void CloudModule::workerTaskEntry(
 }
 
 void CloudModule::workerLoop() {
-  TelemetryJob job;
-
   while (true) {
     if (
       xQueueReceive(
         telemetryQueue,
-        &job,
+        &workerJob,
         portMAX_DELAY
       ) == pdTRUE
     ) {
-      sendTelemetry(job);
+      sendTelemetry(workerJob);
+
+      UBaseType_t remaining =
+        uxTaskGetStackHighWaterMark(
+          nullptr
+        );
+
+      if (
+        remaining <
+          minimumWorkerStackRemaining
+      ) {
+        minimumWorkerStackRemaining =
+          remaining;
+
+        Serial.print(
+          "Pilha livre minima da tarefa cloud: "
+        );
+
+        Serial.print(
+          minimumWorkerStackRemaining
+        );
+
+        Serial.println(
+          " bytes."
+        );
+      }
     }
   }
 }
@@ -1063,7 +1090,7 @@ bool CloudModule::createWorker() {
     xTaskCreate(
       workerTaskEntry,
       "mw-cloud",
-      8192,
+      WORKER_STACK_SIZE_BYTES,
       this,
       1,
       &workerTask
