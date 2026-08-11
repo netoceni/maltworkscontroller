@@ -1,0 +1,19 @@
+# ESP-IDF build and local configuration
+build/
+sdkconfig
+sdkconfig.old
+managed_components/
+.clangd
+
+# VS Code per-machine settings
+.vscode/
+
+# Generated firmware files
+*.bin
+*.elf
+*.map
+*.log
+
+# Operating systems
+Thumbs.db
+.DS_Store
