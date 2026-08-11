@@ -45,6 +45,7 @@ Pinagem do display OLED I²C:
 
 - `SCL` / clock: GPIO 18;
 - `SDA` / data: GPIO 19;
+- orientação da imagem: rotação de 180°;
 - alimentação conforme a especificação do módulo e GND comum.
 
 > Novidade 5.2.0: histerese, proteção mínima do compressor, offsets dos dois

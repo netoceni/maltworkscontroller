@@ -26,6 +26,8 @@ bool DisplayModule::begin(
     return false;
   }
 
+  display.setRotation(2);
+
   display.clearDisplay();
 
   display.setTextColor(
