@@ -1,65 +1,23 @@
 #include "networkmodule.h"
 
 NetworkModule::NetworkModule() :
+  accessPointName(""),
   stationSsid(""),
   stationPassword(""),
   accessPointStarted(false),
   captivePortalStarted(false),
   connectionPreviouslyReported(false),
-  lastConnectionAttempt(0) {
+  lastConnectionAttempt(0),
+  stationDisconnectedSince(0) {
 }
 
 bool NetworkModule::begin(
   const char* accessPointName,
-  const char* accessPointPassword,
   const String& savedStationSsid,
   const String& savedStationPassword
 ) {
-  WiFi.persistent(false);
-  WiFi.setAutoReconnect(true);
-  WiFi.mode(WIFI_AP_STA);
-
-  accessPointStarted =
-    WiFi.softAP(
-      accessPointName,
-      accessPointPassword
-    );
-
-  if (accessPointStarted) {
-    Serial.println(
-      "Rede de contingencia inicializada."
-    );
-
-    Serial.print(
-      "IP da rede propria: "
-    );
-
-    Serial.println(
-      WiFi.softAPIP()
-    );
-
-    dnsServer.setTTL(0);
-    dnsServer.setErrorReplyCode(
-      DNSReplyCode::NoError
-    );
-
-    captivePortalStarted =
-      dnsServer.start(
-        53,
-        "*",
-        WiFi.softAPIP()
-      );
-
-    Serial.println(
-      captivePortalStarted
-        ? "Portal cativo inicializado."
-        : "Falha ao iniciar o portal cativo."
-    );
-  } else {
-    Serial.println(
-      "Falha ao criar a rede de contingencia."
-    );
-  }
+  this->accessPointName =
+    accessPointName;
 
   stationSsid =
     savedStationSsid;
@@ -69,15 +27,29 @@ bool NetworkModule::begin(
 
   stationSsid.trim();
 
+  WiFi.persistent(false);
+  WiFi.setAutoReconnect(true);
+
   if (hasStationCredentials()) {
+    WiFi.mode(WIFI_STA);
+
+    stationDisconnectedSince =
+      millis();
+
     startStationConnection();
+
+    Serial.println(
+      "Rede de configuracao permanecera desligada se o Wi-Fi conectar."
+    );
   } else {
     Serial.println(
       "Wi-Fi domestico ainda nao configurado."
     );
+
+    return startConfigurationAccessPoint();
   }
 
-  return accessPointStarted;
+  return true;
 }
 
 void NetworkModule::update() {
@@ -86,6 +58,10 @@ void NetworkModule::update() {
   }
 
   if (!hasStationCredentials()) {
+    if (!accessPointStarted) {
+      startConfigurationAccessPoint();
+    }
+
     return;
   }
 
@@ -119,6 +95,12 @@ void NetworkModule::update() {
     Serial.println(
       WiFi.localIP()
     );
+
+    stationDisconnectedSince = 0;
+
+    if (accessPointStarted) {
+      stopConfigurationAccessPoint();
+    }
   }
 
   if (
@@ -132,6 +114,30 @@ void NetworkModule::update() {
     Serial.println(
       "Wi-Fi domestico desconectado."
     );
+
+    stationDisconnectedSince =
+      millis();
+  }
+
+  if (
+    !connected &&
+    stationDisconnectedSince == 0
+  ) {
+    stationDisconnectedSince =
+      millis();
+  }
+
+  if (
+    !connected &&
+    !accessPointStarted &&
+    millis() - stationDisconnectedSince >=
+      CONFIGURATION_FALLBACK_DELAY_MS
+  ) {
+    Serial.println(
+      "Wi-Fi indisponivel. Reabrindo a configuracao local."
+    );
+
+    startConfigurationAccessPoint();
   }
 
   if (
@@ -170,6 +176,9 @@ bool NetworkModule::connectStation(
   connectionPreviouslyReported =
     false;
 
+  stationDisconnectedSince =
+    millis();
+
   startStationConnection();
 
   return true;
@@ -186,6 +195,10 @@ void NetworkModule::disconnectStation() {
 
   connectionPreviouslyReported =
     false;
+
+  stationDisconnectedSince = 0;
+
+  startConfigurationAccessPoint();
 
   Serial.println(
     "Credenciais do Wi-Fi domestico removidas."
@@ -273,7 +286,84 @@ getStationRssi() const {
 
 uint8_t NetworkModule::
 getConnectedAccessPointClients() const {
+  if (!accessPointStarted) {
+    return 0;
+  }
+
   return WiFi.softAPgetStationNum();
+}
+
+bool NetworkModule::
+startConfigurationAccessPoint() {
+  if (accessPointStarted) {
+    return true;
+  }
+
+  WiFi.mode(WIFI_AP_STA);
+
+  accessPointStarted =
+    WiFi.softAP(
+      accessPointName.c_str()
+    );
+
+  if (!accessPointStarted) {
+    Serial.println(
+      "Falha ao criar a rede de configuracao."
+    );
+
+    return false;
+  }
+
+  Serial.println(
+    "Rede de configuracao aberta inicializada."
+  );
+
+  Serial.print(
+    "IP da rede propria: "
+  );
+
+  Serial.println(
+    WiFi.softAPIP()
+  );
+
+  dnsServer.setTTL(0);
+  dnsServer.setErrorReplyCode(
+    DNSReplyCode::NoError
+  );
+
+  captivePortalStarted =
+    dnsServer.start(
+      53,
+      "*",
+      WiFi.softAPIP()
+    );
+
+  Serial.println(
+    captivePortalStarted
+      ? "Portal cativo inicializado."
+      : "Falha ao iniciar o portal cativo."
+  );
+
+  return true;
+}
+
+void NetworkModule::
+stopConfigurationAccessPoint() {
+  if (captivePortalStarted) {
+    dnsServer.stop();
+    captivePortalStarted = false;
+  }
+
+  if (accessPointStarted) {
+    WiFi.softAPdisconnect(true);
+    accessPointStarted = false;
+  }
+
+  WiFi.mode(WIFI_STA);
+
+  Serial.println(
+    "Rede de configuracao desativada apos conexao bem-sucedida."
+  );
 }
 
 void NetworkModule::

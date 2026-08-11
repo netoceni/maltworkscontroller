@@ -11,7 +11,6 @@ public:
 
   bool begin(
     const char* accessPointName,
-    const char* accessPointPassword,
     const String& stationSsid,
     const String& stationPassword
   );
@@ -39,6 +38,7 @@ public:
   uint8_t getConnectedAccessPointClients() const;
 
 private:
+  String accessPointName;
   String stationSsid;
   String stationPassword;
 
@@ -49,11 +49,18 @@ private:
   bool connectionPreviouslyReported;
 
   unsigned long lastConnectionAttempt;
+  unsigned long stationDisconnectedSince;
 
   static constexpr unsigned long
     RECONNECT_INTERVAL_MS =
       15UL * 1000UL;
 
+  static constexpr unsigned long
+    CONFIGURATION_FALLBACK_DELAY_MS =
+      30UL * 1000UL;
+
+  bool startConfigurationAccessPoint();
+  void stopConfigurationAccessPoint();
   void startStationConnection();
 };
 

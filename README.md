@@ -50,13 +50,16 @@ Pinagem do display OLED I²C:
 
 ## Portal de configuração inicial
 
-A rede de contingência `MaltworksController` usa um portal cativo. Ao conectar
-um celular ou computador a essa rede, todas as consultas DNS são direcionadas
-ao ESP32 e o sistema operacional pode abrir automaticamente a interface de
-configuração em `http://192.168.4.1`, como ocorre em redes Wi-Fi públicas.
+A rede `MaltworksController` fica aberta, sem senha, somente enquanto o aparelho
+precisa ser configurado. Ao conectar um celular ou computador, todas as consultas
+DNS são direcionadas ao ESP32 e o sistema operacional pode abrir automaticamente
+a interface em `http://192.168.4.1`, como ocorre em redes Wi-Fi públicas.
 
 Se a janela não aparecer automaticamente, abra esse endereço manualmente no
-navegador. A senha inicial da rede é `maltworks`.
+navegador. Depois que as credenciais domésticas forem testadas e a conexão for
+estabelecida, o ESP32 desliga a rede de configuração e o portal cativo. A senha
+doméstica nunca é reutilizada no ponto de acesso do controlador. Se o Wi-Fi salvo
+ficar indisponível por 30 segundos, a rede aberta reaparece para recuperação.
 
 > Novidade 5.2.0: histerese, proteção mínima do compressor, offsets dos dois
 > sensores e configuração completa dos alarmes podem ser enviados pela nuvem.
