@@ -102,6 +102,14 @@ void WebModule::configureRoutes() {
   );
 
   server.on(
+    "/setup/complete",
+    HTTP_POST,
+    [this]() {
+      handleSetupComplete();
+    }
+  );
+
+  server.on(
     "/firmware/preflight",
     HTTP_GET,
     [this]() {
@@ -345,6 +353,7 @@ void WebModule::handleDashboard() {
     ),
     INDEX_HTML_GZ_LEN
   );
+
 }
 
 void WebModule::handleSetup() {
@@ -557,6 +566,24 @@ void WebModule::handleWifiForget() {
     200,
     "application/json; charset=utf-8",
     "{\"success\":true,\"message\":\"Wi-Fi domestico removido. A rede propria permanece ativa.\"}"
+  );
+}
+
+void WebModule::handleSetupComplete() {
+  if (!network.completeConfiguration()) {
+    server.send(
+      409,
+      "application/json; charset=utf-8",
+      "{\"success\":false,\"message\":\"Aguarde o controlador confirmar a conexao com o Wi-Fi.\"}"
+    );
+
+    return;
+  }
+
+  server.send(
+    200,
+    "application/json; charset=utf-8",
+    "{\"success\":true,\"message\":\"Rede validada. Preparando acesso ao Maltworks Cloud.\"}"
   );
 }
 
@@ -2157,6 +2184,11 @@ String WebModule::buildApiJson() const {
 
   json += ",\"stationConnected\":";
   json += network.isStationConnected()
+    ? "true"
+    : "false";
+
+  json += ",\"configurationCompletionPending\":";
+  json += network.isConfigurationCompletionPending()
     ? "true"
     : "false";
 

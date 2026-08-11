@@ -43,15 +43,18 @@ const char SETUP_HTML[] PROGMEM = R"MWSETUP(<!doctype html>
   <section class="card" id="linkCard">
     <p class="eyebrow">Etapas 2 e 3 · Identificação</p>
     <h2>Vincule ao Maltworks Cloud</h2>
-    <p>Guarde estes dados. Depois que o Wi-Fi conectar, a rede de instalação será fechada e você poderá concluir o vínculo no painel.</p>
+    <p>Guarde estes dados. A rede de instalação continuará aberta até você confirmar que está pronto para acessar o painel.</p>
     <div class="identity"><div><span>Device ID</span><strong id="deviceId">carregando...</strong></div><div><span>Código de vínculo</span><strong id="pairingCode">--------</strong></div></div>
-    <a id="claimLink" class="button" href="https://app.maltworks.com.br" target="_blank" rel="noopener">ABRIR MALTWORKS CLOUD</a>
-    <p class="note">Se o link não abrir enquanto estiver conectado ao controlador, aguarde a rede fechar e abra novamente o Maltworks Cloud.</p>
+    <button id="claimButton" type="button" disabled>AGUARDANDO CONEXÃO WI-FI</button>
+    <div id="claimMessage" class="message" role="status">Primeiro conecte o controlador ao Wi-Fi.</div>
+    <p class="note">Ao continuar, a rede MaltworksController será fechada. Seu celular voltará para a internet e o portal abrirá com estes dados preenchidos.</p>
   </section>
 </main>
 <script>
   const $=id=>document.getElementById(id);
   let identity={deviceId:"",pairingCode:""};
+  let claimUrl="https://app.maltworks.com.br";
+  let statusTimer=null;
   async function loadStatus(){
     try{
       const response=await fetch("/api",{cache:"no-store"});
@@ -61,10 +64,20 @@ const char SETUP_HTML[] PROGMEM = R"MWSETUP(<!doctype html>
       $("deviceId").textContent=identity.deviceId||"indisponível";
       $("pairingCode").textContent=identity.pairingCode||"--------";
       const query=new URLSearchParams({claimDevice:identity.deviceId,pairingCode:identity.pairingCode});
-      $("claimLink").href="https://app.maltworks.com.br/?"+query.toString();
+      claimUrl="https://app.maltworks.com.br/?"+query.toString();
+      const ready=Boolean(data.network?.stationConnected&&data.network?.configurationCompletionPending);
+      $("claimButton").disabled=!ready;
+      $("claimButton").textContent=ready?"CONTINUAR PARA O MALTWORKS CLOUD":"AGUARDANDO CONEXÃO WI-FI";
+      if(ready){
+        $("claimMessage").textContent="Wi-Fi confirmado. Confira os dados e continue quando estiver pronto.";
+        $("claimMessage").className="message ok";
+        if(statusTimer){clearInterval(statusTimer);statusTimer=null;}
+      }
     }catch(error){
-      $("wifiMessage").textContent="Não foi possível ler a identificação. Atualize a página.";
-      $("wifiMessage").className="message bad";
+      if(!statusTimer){
+        $("claimMessage").textContent="Não foi possível confirmar a conexão. Tente novamente.";
+        $("claimMessage").className="message bad";
+      }
     }
   }
   $("showPassword").addEventListener("click",()=>{
@@ -84,13 +97,36 @@ const char SETUP_HTML[] PROGMEM = R"MWSETUP(<!doctype html>
       const response=await fetch("/wifi/save",{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body});
       const result=await response.json();
       if(!response.ok||!result.success)throw new Error(result.message||"Falha ao salvar a rede.");
-      message.textContent="Credenciais salvas. Quando a conexão funcionar, esta rede será fechada. Continue o vínculo no Maltworks Cloud.";
+      message.textContent="Credenciais salvas. Validando o Wi-Fi sem fechar esta página...";
       message.className="message ok";
-      $("claimLink").focus();
+      if(!statusTimer)statusTimer=setInterval(()=>void loadStatus(),1000);
+      void loadStatus();
     }catch(error){
       message.textContent=error.message||"Não foi possível configurar o Wi-Fi.";
       message.className="message bad";
       button.disabled=false;
+    }
+  });
+  $("claimButton").addEventListener("click",async()=>{
+    const button=$("claimButton");
+    const message=$("claimMessage");
+    button.disabled=true;
+    button.textContent="PREPARANDO O PORTAL...";
+    message.textContent="A rede do controlador será fechada. Aguarde seu celular recuperar a internet.";
+    message.className="message";
+    try{
+      const response=await fetch("/setup/complete",{method:"POST"});
+      const result=await response.json();
+      if(!response.ok||!result.success)throw new Error(result.message||"Wi-Fi ainda não confirmado.");
+      message.textContent="Tudo pronto. Redirecionando para o Maltworks Cloud...";
+      message.className="message ok";
+      setTimeout(()=>window.location.replace(claimUrl),4500);
+    }catch(error){
+      message.textContent=error.message||"Não foi possível concluir a instalação.";
+      message.className="message bad";
+      button.disabled=false;
+      button.textContent="TENTAR NOVAMENTE";
+      if(!statusTimer)statusTimer=setInterval(()=>void loadStatus(),1000);
     }
   });
   void loadStatus();

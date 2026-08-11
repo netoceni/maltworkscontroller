@@ -24,7 +24,10 @@ public:
 
   void disconnectStation();
 
+  bool completeConfiguration();
+
   bool isAccessPointStarted() const;
+  bool isConfigurationCompletionPending() const;
   bool hasStationCredentials() const;
   bool isStationConnected() const;
 
@@ -47,9 +50,12 @@ private:
   bool accessPointStarted;
   bool captivePortalStarted;
   bool connectionPreviouslyReported;
+  bool configurationCompletionPending;
+  bool configurationShutdownScheduled;
 
   unsigned long lastConnectionAttempt;
   unsigned long stationDisconnectedSince;
+  unsigned long configurationShutdownScheduledAt;
 
   static constexpr unsigned long
     RECONNECT_INTERVAL_MS =
@@ -58,6 +64,10 @@ private:
   static constexpr unsigned long
     CONFIGURATION_FALLBACK_DELAY_MS =
       30UL * 1000UL;
+
+  static constexpr unsigned long
+    CONFIGURATION_SHUTDOWN_DELAY_MS =
+      2500UL;
 
   bool startConfigurationAccessPoint();
   void stopConfigurationAccessPoint();

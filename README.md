@@ -67,6 +67,11 @@ Device ID e o código de vínculo, configura o endpoint oficial
 para concluir o vínculo no Maltworks Cloud. O login do cliente acontece somente
 no domínio oficial; usuário e senha nunca são enviados ao ESP32.
 
+Depois de validar as credenciais do Wi-Fi, o portal de instalação permanece
+aberto para o cliente conferir o Device ID e o código. A rede do controlador
+só é encerrada quando o cliente escolhe continuar para o Maltworks Cloud,
+evitando que a página desapareça durante a entrega para o painel.
+
 > Novidade 5.2.0: histerese, proteção mínima do compressor, offsets dos dois
 > sensores e configuração completa dos alarmes podem ser enviados pela nuvem.
 > O ESP32 valida o pacote inteiro, persiste localmente, tenta restaurar os

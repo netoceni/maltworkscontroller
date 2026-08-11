@@ -81,6 +81,7 @@ private:
   void handleSave();
   void handleWifiSave();
   void handleWifiForget();
+  void handleSetupComplete();
   void handleFirmwarePreflight();
   void handleFirmwareUpdateEnd();
   void handleFirmwareUpload();

@@ -7,8 +7,11 @@ NetworkModule::NetworkModule() :
   accessPointStarted(false),
   captivePortalStarted(false),
   connectionPreviouslyReported(false),
+  configurationCompletionPending(false),
+  configurationShutdownScheduled(false),
   lastConnectionAttempt(0),
-  stationDisconnectedSince(0) {
+  stationDisconnectedSince(0),
+  configurationShutdownScheduledAt(0) {
 }
 
 bool NetworkModule::begin(
@@ -98,9 +101,29 @@ void NetworkModule::update() {
 
     stationDisconnectedSince = 0;
 
-    if (accessPointStarted) {
+    if (
+      accessPointStarted &&
+      !configurationCompletionPending
+    ) {
       stopConfigurationAccessPoint();
+    } else if (
+      accessPointStarted &&
+      configurationCompletionPending
+    ) {
+      Serial.println(
+        "Configuracao concluida. Aguardando confirmacao do usuario para abrir o Maltworks Cloud."
+      );
     }
+  }
+
+  if (
+    connected &&
+    accessPointStarted &&
+    configurationShutdownScheduled &&
+    millis() - configurationShutdownScheduledAt >=
+      CONFIGURATION_SHUTDOWN_DELAY_MS
+  ) {
+    stopConfigurationAccessPoint();
   }
 
   if (
@@ -176,6 +199,17 @@ bool NetworkModule::connectStation(
   connectionPreviouslyReported =
     false;
 
+  if (accessPointStarted) {
+    configurationCompletionPending =
+      true;
+
+    configurationShutdownScheduled =
+      false;
+
+    configurationShutdownScheduledAt =
+      0;
+  }
+
   stationDisconnectedSince =
     millis();
 
@@ -196,6 +230,15 @@ void NetworkModule::disconnectStation() {
   connectionPreviouslyReported =
     false;
 
+  configurationCompletionPending =
+    false;
+
+  configurationShutdownScheduled =
+    false;
+
+  configurationShutdownScheduledAt =
+    0;
+
   stationDisconnectedSince = 0;
 
   startConfigurationAccessPoint();
@@ -205,9 +248,36 @@ void NetworkModule::disconnectStation() {
   );
 }
 
+bool NetworkModule::completeConfiguration() {
+  if (
+    !accessPointStarted ||
+    !configurationCompletionPending ||
+    !isStationConnected()
+  ) {
+    return false;
+  }
+
+  configurationShutdownScheduled =
+    true;
+
+  configurationShutdownScheduledAt =
+    millis();
+
+  Serial.println(
+    "Transferencia para o Maltworks Cloud solicitada."
+  );
+
+  return true;
+}
+
 bool NetworkModule::
 isAccessPointStarted() const {
   return accessPointStarted;
+}
+
+bool NetworkModule::
+isConfigurationCompletionPending() const {
+  return configurationCompletionPending;
 }
 
 bool NetworkModule::
@@ -361,8 +431,17 @@ stopConfigurationAccessPoint() {
 
   WiFi.mode(WIFI_STA);
 
+  configurationCompletionPending =
+    false;
+
+  configurationShutdownScheduled =
+    false;
+
+  configurationShutdownScheduledAt =
+    0;
+
   Serial.println(
-    "Rede de configuracao desativada apos conexao bem-sucedida."
+    "Rede de configuracao desativada. Abrindo caminho para o Maltworks Cloud."
   );
 }
 
