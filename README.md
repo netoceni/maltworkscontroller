@@ -35,6 +35,12 @@ Pinagem atual dos relés:
 - `IN2` (aquecimento): GPIO 26;
 - os relés são ativos em nível baixo.
 
+Pinagem dos sensores de temperatura:
+
+- `DAT` dos DS18B20: GPIO 23;
+- alimentação: 3,3 V;
+- todos os sensores compartilham o mesmo barramento e o mesmo GND.
+
 > Novidade 5.2.0: histerese, proteção mínima do compressor, offsets dos dois
 > sensores e configuração completa dos alarmes podem ser enviados pela nuvem.
 > O ESP32 valida o pacote inteiro, persiste localmente, tenta restaurar os

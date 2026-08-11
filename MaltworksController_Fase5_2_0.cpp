@@ -20,7 +20,7 @@
 
 constexpr uint8_t OLED_SDA_PIN = 21;
 constexpr uint8_t OLED_SCL_PIN = 22;
-constexpr uint8_t TEMPERATURE_SENSOR_PIN = 15;
+constexpr uint8_t TEMPERATURE_SENSOR_PIN = 23;
 constexpr uint8_t COOLING_RELAY_PIN = 27;
 constexpr uint8_t HEATING_RELAY_PIN = 26;
 
