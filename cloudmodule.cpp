@@ -632,12 +632,19 @@ String CloudModule::getDeviceId() const {
 String CloudModule::getDeviceTokenHint() const {
   lockState();
 
-  String hint =
-    deviceToken.length() >= 8
+  String compact =
+    deviceToken.length() >= 16
       ? deviceToken.substring(
-          deviceToken.length() - 8
+          deviceToken.length() - 16
         )
-      : "--------";
+      : "";
+
+  String hint = compact.length() == 16
+    ? compact.substring(0, 4) + "-" +
+      compact.substring(4, 8) + "-" +
+      compact.substring(8, 12) + "-" +
+      compact.substring(12, 16)
+    : "---- ---- ---- ----";
 
   unlockState();
 

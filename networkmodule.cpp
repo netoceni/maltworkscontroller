@@ -264,7 +264,7 @@ bool NetworkModule::completeConfiguration() {
     millis();
 
   Serial.println(
-    "Transferencia para o Maltworks Cloud solicitada."
+    "Configuracao finalizada. A rede local sera encerrada."
   );
 
   return true;

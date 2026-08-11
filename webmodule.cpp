@@ -583,7 +583,7 @@ void WebModule::handleSetupComplete() {
   server.send(
     200,
     "application/json; charset=utf-8",
-    "{\"success\":true,\"message\":\"Rede validada. Preparando acesso ao Maltworks Cloud.\"}"
+    "{\"success\":true,\"message\":\"Rede validada. Finalizando a configuracao local.\"}"
   );
 }
 

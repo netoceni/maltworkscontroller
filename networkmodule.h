@@ -67,7 +67,7 @@ private:
 
   static constexpr unsigned long
     CONFIGURATION_SHUTDOWN_DELAY_MS =
-      2500UL;
+      5000UL;
 
   bool startConfigurationAccessPoint();
   void stopConfigurationAccessPoint();

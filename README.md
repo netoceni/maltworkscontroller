@@ -1,4 +1,4 @@
-# Maltworks Controller — Fase 5.2.0
+# Maltworks Controller — Fase 5.3.0
 
 ## Desenvolvimento com ESP-IDF
 
@@ -62,15 +62,19 @@ doméstica nunca é reutilizada no ponto de acesso do controlador. Se o Wi-Fi sa
 ficar indisponível por 30 segundos, a rede aberta reaparece para recuperação.
 
 O portal de instalação é separado do dashboard operacional. Ele mostra o
-Device ID e o código de vínculo, configura o endpoint oficial
-`https://api.maltworks.com.br/v1/telemetry` automaticamente e oferece um link
-para concluir o vínculo no Maltworks Cloud. O login do cliente acontece somente
-no domínio oficial; usuário e senha nunca são enviados ao ESP32.
+código de cadastro completo, configura o endpoint oficial
+`https://api.maltworks.com.br/v1/telemetry` automaticamente e orienta o cliente
+a concluir o cadastro no Maltworks Cloud. O login acontece somente no domínio
+oficial; usuário e senha nunca são enviados ao ESP32.
 
-Depois de validar as credenciais do Wi-Fi, o portal de instalação permanece
-aberto para o cliente conferir o Device ID e o código. A rede do controlador
-só é encerrada quando o cliente escolhe continuar para o Maltworks Cloud,
-evitando que a página desapareça durante a entrega para o painel.
+Depois de validar as credenciais do Wi-Fi, o portal copia o código de cadastro,
+mantém a confirmação visível por alguns segundos e encerra a rede do controlador.
+O cliente então volta à internet, entra na própria conta e usa a opção
+`Cadastrar controlador`.
+
+> Novidade 5.3.0: o primeiro acesso usa um código único no formato
+> `MW-XXXXXXXXXXXX-XXXX-XXXX-XXXX-XXXX`. O segredo aleatório de 256 bits
+> continua armazenado apenas no ESP32 e a API conserva somente seu hash.
 
 > Novidade 5.2.0: histerese, proteção mínima do compressor, offsets dos dois
 > sensores e configuração completa dos alarmes podem ser enviados pela nuvem.
@@ -121,7 +125,7 @@ evitando que a página desapareça durante a entrega para o painel.
 
 ## Objetivo desta versão
 
-A Fase 5.2.0 mantém o firmware **Cloud Ready** sem transferir para a nuvem nenhuma função crítica de controle. O ESP32 continua executando localmente:
+A Fase 5.3.0 mantém o firmware **Cloud Ready** sem transferir para a nuvem nenhuma função crítica de controle. O ESP32 continua executando localmente:
 
 - leitura e calibração dos dois DS18B20;
 - setpoint, histerese e perfis de fermentação;
@@ -174,7 +178,11 @@ A interface local ganhou uma aba para:
 - solicitar sincronização imediata;
 - renovar o token do dispositivo.
 
-O token completo nunca é retornado pela API local. A tela mostra somente os oito últimos caracteres como código de vínculo. Na próxima etapa, o fluxo previsto é: o dispositivo se apresenta à API por HTTPS, a API armazena apenas o hash do token e o usuário vincula o equipamento à própria conta usando o Device ID e esse código curto. Assim o segredo completo não precisa trafegar pela interface HTTP local.
+O token completo nunca é retornado pela API local. A tela mostra o Device ID e
+somente os 16 últimos caracteres do segredo, combinados em um código de cadastro.
+O dispositivo se apresenta à API por HTTPS, a API armazena apenas hashes e o
+usuário cadastra o equipamento na conta sem que o segredo completo trafegue pela
+interface HTTP local.
 
 ## Contrato HTTP esperado
 
@@ -185,7 +193,7 @@ POST <URL configurada>
 Content-Type: application/json
 Authorization: Bearer <token individual>
 X-Maltworks-Device-ID: MW-XXXXXXXXXXXX
-X-Maltworks-Firmware: 5.2.0
+X-Maltworks-Firmware: 5.3.0
 ```
 
 Qualquer resposta `2xx` confirma a telemetria. `401` e `403` são tratados como falha de autenticação. Demais falhas usam retentativa progressiva.

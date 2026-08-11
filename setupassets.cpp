@@ -42,32 +42,45 @@ const char SETUP_HTML[] PROGMEM = R"MWSETUP(<!doctype html>
 
   <section class="card" id="linkCard">
     <p class="eyebrow">Etapas 2 e 3 · Identificação</p>
-    <h2>Vincule ao Maltworks Cloud</h2>
-    <p>Guarde estes dados. A rede de instalação continuará aberta até você confirmar que está pronto para acessar o painel.</p>
-    <div class="identity"><div><span>Device ID</span><strong id="deviceId">carregando...</strong></div><div><span>Código de vínculo</span><strong id="pairingCode">--------</strong></div></div>
+    <h2>Cadastre no Maltworks Cloud</h2>
+    <p>Guarde o código de cadastro. Você o informará na sua conta depois que esta rede for encerrada.</p>
+    <div class="identity"><div><span>Device ID</span><strong id="deviceId">carregando...</strong></div><div><span>Código de cadastro</span><strong id="registrationToken">---- ---- ---- ----</strong></div></div>
     <button id="claimButton" type="button" disabled>AGUARDANDO CONEXÃO WI-FI</button>
     <div id="claimMessage" class="message" role="status">Primeiro conecte o controlador ao Wi-Fi.</div>
-    <p class="note">Ao continuar, a rede MaltworksController será fechada. Seu celular voltará para a internet e o portal abrirá com estes dados preenchidos.</p>
+    <p class="note">Ao finalizar, copiaremos o código e encerraremos a rede MaltworksController. Depois, abra app.maltworks.com.br e escolha “Cadastrar controlador”.</p>
   </section>
 </main>
 <script>
   const $=id=>document.getElementById(id);
-  let identity={deviceId:"",pairingCode:""};
-  let claimUrl="https://app.maltworks.com.br";
+  let identity={deviceId:"",registrationToken:""};
   let statusTimer=null;
+  function copyRegistrationToken(){
+    const field=document.createElement("textarea");
+    field.value=identity.registrationToken;
+    field.setAttribute("readonly","");
+    field.style.position="fixed";
+    field.style.opacity="0";
+    document.body.appendChild(field);
+    field.select();
+    field.setSelectionRange(0,field.value.length);
+    let copied=false;
+    try{copied=document.execCommand("copy");}catch(error){}
+    field.remove();
+    return copied;
+  }
   async function loadStatus(){
     try{
       const response=await fetch("/api",{cache:"no-store"});
       const data=await response.json();
       identity.deviceId=data.cloud?.deviceId||"";
-      identity.pairingCode=data.cloud?.tokenHint||"";
+      identity.registrationToken=identity.deviceId&&data.cloud?.tokenHint
+        ? identity.deviceId+"-"+data.cloud.tokenHint
+        : "";
       $("deviceId").textContent=identity.deviceId||"indisponível";
-      $("pairingCode").textContent=identity.pairingCode||"--------";
-      const query=new URLSearchParams({claimDevice:identity.deviceId,pairingCode:identity.pairingCode});
-      claimUrl="https://app.maltworks.com.br/?"+query.toString();
+      $("registrationToken").textContent=identity.registrationToken||"MW-000000000000-XXXX-XXXX-XXXX-XXXX";
       const ready=Boolean(data.stationConnected&&data.configurationCompletionPending);
       $("claimButton").disabled=!ready;
-      $("claimButton").textContent=ready?"CONTINUAR PARA O MALTWORKS CLOUD":"AGUARDANDO CONEXÃO WI-FI";
+      $("claimButton").textContent=ready?"FINALIZAR E COPIAR CÓDIGO":"AGUARDANDO CONEXÃO WI-FI";
       if(ready){
         $("claimMessage").textContent="Wi-Fi confirmado. Confira os dados e continue quando estiver pronto.";
         $("claimMessage").className="message ok";
@@ -110,17 +123,29 @@ const char SETUP_HTML[] PROGMEM = R"MWSETUP(<!doctype html>
   $("claimButton").addEventListener("click",async()=>{
     const button=$("claimButton");
     const message=$("claimMessage");
+    const copied=copyRegistrationToken();
     button.disabled=true;
-    button.textContent="PREPARANDO O PORTAL...";
-    message.textContent="A rede do controlador será fechada. Aguarde seu celular recuperar a internet.";
+    button.textContent="FINALIZANDO...";
+    message.textContent="Salvando a configuração e encerrando a rede local...";
     message.className="message";
     try{
       const response=await fetch("/setup/complete",{method:"POST"});
       const result=await response.json();
       if(!response.ok||!result.success)throw new Error(result.message||"Wi-Fi ainda não confirmado.");
-      message.textContent="Tudo pronto. Redirecionando para o Maltworks Cloud...";
-      message.className="message ok";
-      setTimeout(()=>window.location.replace(claimUrl),4500);
+      $("wifiCard").classList.add("hidden");
+      $("linkCard").innerHTML='<p class="eyebrow">Configuração concluída</p><h2>Controlador conectado</h2><p class="message ok">'+(copied?'O código de cadastro foi copiado.':'Selecione e copie o código abaixo.')+'</p><div class="identity"><div><span>Device ID</span><strong>'+identity.deviceId+'</strong></div><div><span>Código de cadastro</span><strong>'+identity.registrationToken+'</strong></div></div><label for="registrationTokenCopy">Código de cadastro</label><input id="registrationTokenCopy" value="'+identity.registrationToken+'" readonly><button type="button" id="copyAgain">COPIAR CÓDIGO NOVAMENTE</button><p><strong>Agora:</strong> aguarde a rede MaltworksController desaparecer, feche esta janela, entre em app.maltworks.com.br e toque em “Cadastrar controlador”.</p><div id="shutdownStatus" class="message">Encerrando a rede do controlador…</div>';
+      $("copyAgain").addEventListener("click",()=>{
+        const field=$("registrationTokenCopy");
+        field.select();
+        field.setSelectionRange(0,field.value.length);
+        try{document.execCommand("copy");}catch(error){}
+        $("shutdownStatus").textContent="Código copiado. Feche esta janela e abra o Maltworks Cloud.";
+        $("shutdownStatus").className="message ok";
+      });
+      setTimeout(()=>{
+        const status=$("shutdownStatus");
+        if(status){status.textContent="Rede liberada. Feche esta janela e abra o navegador normal.";status.className="message ok";}
+      },5500);
     }catch(error){
       message.textContent=error.message||"Não foi possível concluir a instalação.";
       message.className="message bad";
