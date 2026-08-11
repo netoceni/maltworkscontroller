@@ -5,13 +5,13 @@ namespace FirmwareInfo {
     "MaltworksController";
 
   const char VERSION[] =
-    "5.3.0";
+    "5.3.1";
 
   const char BOARD_FAMILY[] =
     "ESP32";
 
   const char BUILD_PHASE[] =
-    "Fase5_3_0";
+    "Fase5_3_1";
 
   /*
     Este texto fica incorporado ao arquivo .bin.
@@ -28,9 +28,9 @@ namespace FirmwareInfo {
     __attribute__((used)) =
       "MALTWORKS_FW_META:"
       "{\"product\":\"MaltworksController\","
-      "\"version\":\"5.3.0\","
+      "\"version\":\"5.3.1\","
       "\"boardFamily\":\"ESP32\","
-      "\"phase\":\"Fase5_3_0\"}"
+      "\"phase\":\"Fase5_3_1\"}"
       ":MALTWORKS_FW_META_END";
 
   String getMetadataJson() {

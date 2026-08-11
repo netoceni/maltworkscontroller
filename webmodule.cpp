@@ -33,6 +33,7 @@ WebModule::WebModule(
   eventLog(eventLogModule),
   cloud(cloudModule),
   initialized(false),
+  stationWasConnected(false),
   firmwareUpdateInProgress(false),
   firmwareUpdateSucceeded(false),
   restartScheduled(false),
@@ -299,6 +300,23 @@ void WebModule::update() {
   if (!initialized) {
     return;
   }
+
+  const bool stationConnected =
+    WiFi.status() == WL_CONNECTED;
+
+  if (
+    stationConnected &&
+    !stationWasConnected
+  ) {
+    server.stop();
+    server.begin();
+
+    Serial.println(
+      "Interface web reaberta no IP do Wi-Fi domestico."
+    );
+  }
+
+  stationWasConnected = stationConnected;
 
   server.handleClient();
 

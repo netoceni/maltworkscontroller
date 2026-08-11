@@ -1,4 +1,4 @@
-# Maltworks Controller — Fase 5.3.0
+# Maltworks Controller — Fase 5.3.1
 
 ## Desenvolvimento com ESP-IDF
 
@@ -72,6 +72,9 @@ mantém a confirmação visível por alguns segundos e encerra a rede do control
 O cliente então volta à internet, entra na própria conta e usa a opção
 `Cadastrar controlador`.
 
+> Correção 5.3.1: a interface HTTP local é reaberta assim que o roteador entrega
+> um IP ao controlador, mantendo o dashboard e o código de cadastro acessíveis.
+
 > Novidade 5.3.0: o primeiro acesso usa um código único no formato
 > `MW-XXXXXXXXXXXX-XXXX-XXXX-XXXX-XXXX`. O segredo aleatório de 256 bits
 > continua armazenado apenas no ESP32 e a API conserva somente seu hash.
@@ -125,7 +128,7 @@ O cliente então volta à internet, entra na própria conta e usa a opção
 
 ## Objetivo desta versão
 
-A Fase 5.3.0 mantém o firmware **Cloud Ready** sem transferir para a nuvem nenhuma função crítica de controle. O ESP32 continua executando localmente:
+A Fase 5.3.1 mantém o firmware **Cloud Ready** sem transferir para a nuvem nenhuma função crítica de controle. O ESP32 continua executando localmente:
 
 - leitura e calibração dos dois DS18B20;
 - setpoint, histerese e perfis de fermentação;
@@ -193,7 +196,7 @@ POST <URL configurada>
 Content-Type: application/json
 Authorization: Bearer <token individual>
 X-Maltworks-Device-ID: MW-XXXXXXXXXXXX
-X-Maltworks-Firmware: 5.3.0
+X-Maltworks-Firmware: 5.3.1
 ```
 
 Qualquer resposta `2xx` confirma a telemetria. `401` e `403` são tratados como falha de autenticação. Demais falhas usam retentativa progressiva.

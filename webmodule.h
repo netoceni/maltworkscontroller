@@ -59,6 +59,7 @@ private:
   CloudModule& cloud;
 
   bool initialized;
+  bool stationWasConnected;
   bool firmwareUpdateInProgress;
   bool firmwareUpdateSucceeded;
   bool restartScheduled;
