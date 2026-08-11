@@ -65,7 +65,7 @@ const char SETUP_HTML[] PROGMEM = R"MWSETUP(<!doctype html>
       $("pairingCode").textContent=identity.pairingCode||"--------";
       const query=new URLSearchParams({claimDevice:identity.deviceId,pairingCode:identity.pairingCode});
       claimUrl="https://app.maltworks.com.br/?"+query.toString();
-      const ready=Boolean(data.network?.stationConnected&&data.network?.configurationCompletionPending);
+      const ready=Boolean(data.stationConnected&&data.configurationCompletionPending);
       $("claimButton").disabled=!ready;
       $("claimButton").textContent=ready?"CONTINUAR PARA O MALTWORKS CLOUD":"AGUARDANDO CONEXÃO WI-FI";
       if(ready){
