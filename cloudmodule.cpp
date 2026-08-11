@@ -297,6 +297,16 @@ bool CloudModule::begin() {
 
   Serial.println(deviceId);
 
+  Serial.print(
+    "Codigo de cadastro: "
+  );
+
+  Serial.print(deviceId);
+  Serial.print("-");
+  Serial.println(
+    getDeviceTokenHint()
+  );
+
   Serial.println(
     enabled
       ? "Sincronizacao cloud habilitada."
