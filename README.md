@@ -41,6 +41,12 @@ Pinagem dos sensores de temperatura:
 - alimentação: 3,3 V;
 - todos os sensores compartilham o mesmo barramento e o mesmo GND.
 
+Pinagem do display OLED I²C:
+
+- `SCL` / clock: GPIO 18;
+- `SDA` / data: GPIO 19;
+- alimentação conforme a especificação do módulo e GND comum.
+
 > Novidade 5.2.0: histerese, proteção mínima do compressor, offsets dos dois
 > sensores e configuração completa dos alarmes podem ser enviados pela nuvem.
 > O ESP32 valida o pacote inteiro, persiste localmente, tenta restaurar os
