@@ -1,5 +1,34 @@
 # Maltworks Controller — Fase 5.2.0
 
+## Desenvolvimento com ESP-IDF
+
+Esta versão foi preparada para o **ESP-IDF 5.3.5** no VS Code. Para preservar o
+comportamento existente durante a migração, o Arduino Core 3.3.11 é usado como
+componente do ESP-IDF. Os módulos serão convertidos gradualmente para APIs
+nativas, sem trocar todo o firmware de uma só vez.
+
+No VS Code:
+
+1. abra uma pasta de caminho curto, por exemplo `C:\Projetos\maltworkscontroller`;
+2. selecione o ESP-IDF 5.3.5 na extensão Espressif;
+3. selecione o alvo `esp32` e a placa ESP32 DevKit;
+4. use **ESP-IDF: Build your project** para compilar;
+5. conecte o controlador, selecione a porta serial e use **UART** para gravar;
+6. abra o monitor serial em 115200 baud.
+
+Pelo terminal ESP-IDF, os comandos equivalentes são:
+
+```powershell
+idf.py build
+idf.py -p COM6 flash monitor
+```
+
+Troque `COM6` pela porta exibida no seu computador. Antes do primeiro teste de
+bancada, desconecte as cargas de aquecimento e refrigeração: os relés do
+controlador são ativos em nível baixo. A gravação não apaga automaticamente as
+configurações salvas na NVS; para um teste totalmente limpo, use
+`idf.py -p COM6 erase-flash` antes de gravar.
+
 > Novidade 5.2.0: histerese, proteção mínima do compressor, offsets dos dois
 > sensores e configuração completa dos alarmes podem ser enviados pela nuvem.
 > O ESP32 valida o pacote inteiro, persiste localmente, tenta restaurar os

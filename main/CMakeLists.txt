@@ -23,6 +23,7 @@ idf_component_register(
     INCLUDE_DIRS ".."
     REQUIRES
         arduino-esp32
+        nvs_flash
         onewire
         dallas_temperature
         adafruit_busio

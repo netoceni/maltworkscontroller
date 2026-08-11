@@ -2,6 +2,7 @@
 #include <WiFiClientSecure.h>
 #include <esp_err.h>
 #include <esp_system.h>
+#include <inttypes.h>
 #include <math.h>
 #include <nvs.h>
 #include <stdlib.h>
@@ -1754,7 +1755,7 @@ String CloudModule::buildDeviceId() const {
   snprintf(
     buffer,
     sizeof(buffer),
-    "MW-%04X%08X",
+    "MW-%04" PRIX16 "%08" PRIX32,
     static_cast<uint16_t>(
       chipId >> 32
     ),
