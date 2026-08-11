@@ -31,13 +31,9 @@ configurações salvas na NVS; para um teste totalmente limpo, use
 
 Pinagem atual dos relés:
 
-- `IN1` (resfriamento): GPIO 13;
-- `IN2` (aquecimento): GPIO 12;
+- `IN1` (resfriamento): GPIO 27;
+- `IN2` (aquecimento): GPIO 26;
 - os relés são ativos em nível baixo.
-
-O GPIO 12 é um pino de configuração de inicialização do ESP32. Se a entrada do
-módulo de relés mantiver esse pino em nível alto durante o reset, o ESP32 poderá
-não iniciar. Nesse caso, use outro GPIO seguro para `IN2`, como GPIO 14 ou 27.
 
 > Novidade 5.2.0: histerese, proteção mínima do compressor, offsets dos dois
 > sensores e configuração completa dos alarmes podem ser enviados pela nuvem.
