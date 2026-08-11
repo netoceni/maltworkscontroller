@@ -48,6 +48,16 @@ Pinagem do display OLED I²C:
 - orientação da imagem: rotação de 180°;
 - alimentação conforme a especificação do módulo e GND comum.
 
+## Portal de configuração inicial
+
+A rede de contingência `MaltworksController` usa um portal cativo. Ao conectar
+um celular ou computador a essa rede, todas as consultas DNS são direcionadas
+ao ESP32 e o sistema operacional pode abrir automaticamente a interface de
+configuração em `http://192.168.4.1`, como ocorre em redes Wi-Fi públicas.
+
+Se a janela não aparecer automaticamente, abra esse endereço manualmente no
+navegador. A senha inicial da rede é `maltworks`.
+
 > Novidade 5.2.0: histerese, proteção mínima do compressor, offsets dos dois
 > sensores e configuração completa dos alarmes podem ser enviados pela nuvem.
 > O ESP32 valida o pacote inteiro, persiste localmente, tenta restaurar os

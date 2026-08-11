@@ -2,6 +2,7 @@
 #define NETWORKMODULE_H
 
 #include <Arduino.h>
+#include <DNSServer.h>
 #include <WiFi.h>
 
 class NetworkModule {
@@ -41,7 +42,10 @@ private:
   String stationSsid;
   String stationPassword;
 
+  DNSServer dnsServer;
+
   bool accessPointStarted;
+  bool captivePortalStarted;
   bool connectionPreviouslyReported;
 
   unsigned long lastConnectionAttempt;

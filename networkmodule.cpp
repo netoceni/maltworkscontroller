@@ -4,6 +4,7 @@ NetworkModule::NetworkModule() :
   stationSsid(""),
   stationPassword(""),
   accessPointStarted(false),
+  captivePortalStarted(false),
   connectionPreviouslyReported(false),
   lastConnectionAttempt(0) {
 }
@@ -36,6 +37,24 @@ bool NetworkModule::begin(
     Serial.println(
       WiFi.softAPIP()
     );
+
+    dnsServer.setTTL(0);
+    dnsServer.setErrorReplyCode(
+      DNSReplyCode::NoError
+    );
+
+    captivePortalStarted =
+      dnsServer.start(
+        53,
+        "*",
+        WiFi.softAPIP()
+      );
+
+    Serial.println(
+      captivePortalStarted
+        ? "Portal cativo inicializado."
+        : "Falha ao iniciar o portal cativo."
+    );
   } else {
     Serial.println(
       "Falha ao criar a rede de contingencia."
@@ -62,6 +81,10 @@ bool NetworkModule::begin(
 }
 
 void NetworkModule::update() {
+  if (captivePortalStarted) {
+    dnsServer.processNextRequest();
+  }
+
   if (!hasStationCredentials()) {
     return;
   }
