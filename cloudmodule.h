@@ -84,6 +84,10 @@ private:
   static constexpr const char*
     CONFIGURATION_NAMESPACE = "mwcloudcfg";
 
+  static constexpr const char*
+    DEFAULT_TELEMETRY_URL =
+      "https://api.maltworks.com.br/v1/telemetry";
+
   static constexpr uint32_t
     DEFAULT_INTERVAL_SECONDS = 5;
 

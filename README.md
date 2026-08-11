@@ -61,6 +61,12 @@ estabelecida, o ESP32 desliga a rede de configuração e o portal cativo. A senh
 doméstica nunca é reutilizada no ponto de acesso do controlador. Se o Wi-Fi salvo
 ficar indisponível por 30 segundos, a rede aberta reaparece para recuperação.
 
+O portal de instalação é separado do dashboard operacional. Ele mostra o
+Device ID e o código de vínculo, configura o endpoint oficial
+`https://api.maltworks.com.br/v1/telemetry` automaticamente e oferece um link
+para concluir o vínculo no Maltworks Cloud. O login do cliente acontece somente
+no domínio oficial; usuário e senha nunca são enviados ao ESP32.
+
 > Novidade 5.2.0: histerese, proteção mínima do compressor, offsets dos dois
 > sensores e configuração completa dos alarmes podem ser enviados pela nuvem.
 > O ESP32 valida o pacote inteiro, persiste localmente, tenta restaurar os

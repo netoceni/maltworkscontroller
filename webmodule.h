@@ -76,6 +76,8 @@ private:
   void configureRoutes();
 
   void handleRoot();
+  void handleDashboard();
+  void handleSetup();
   void handleSave();
   void handleWifiSave();
   void handleWifiForget();

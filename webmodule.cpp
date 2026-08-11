@@ -3,6 +3,7 @@
 
 #include "webmodule.h"
 #include "webassets.h"
+#include "setupassets.h"
 
 WebModule::WebModule(
   TemperatureModule& temperatureModule,
@@ -57,6 +58,22 @@ void WebModule::configureRoutes() {
     HTTP_GET,
     [this]() {
       handleRoot();
+    }
+  );
+
+  server.on(
+    "/dashboard",
+    HTTP_GET,
+    [this]() {
+      handleDashboard();
+    }
+  );
+
+  server.on(
+    "/setup",
+    HTTP_GET,
+    [this]() {
+      handleSetup();
     }
   );
 
@@ -296,6 +313,15 @@ IPAddress WebModule::getIpAddress() const {
 }
 
 void WebModule::handleRoot() {
+  if (network.isAccessPointStarted()) {
+    handleSetup();
+    return;
+  }
+
+  handleDashboard();
+}
+
+void WebModule::handleDashboard() {
   server.sendHeader(
     "Cache-Control",
     "no-store"
@@ -318,6 +344,19 @@ void WebModule::handleRoot() {
       INDEX_HTML_GZ
     ),
     INDEX_HTML_GZ_LEN
+  );
+}
+
+void WebModule::handleSetup() {
+  server.sendHeader(
+    "Cache-Control",
+    "no-store"
+  );
+
+  server.send_P(
+    200,
+    "text/html; charset=utf-8",
+    SETUP_HTML
   );
 }
 

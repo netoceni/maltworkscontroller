@@ -13,6 +13,7 @@ set(APP_SOURCES
     "../recipelibrarymodule.cpp"
     "../relaymodule.cpp"
     "../settingsmodule.cpp"
+    "../setupassets.cpp"
     "../temperaturemodule.cpp"
     "../webassets.cpp"
     "../webmodule.cpp"

@@ -227,6 +227,39 @@ bool CloudModule::begin() {
       enabled = savedEnabled != 0;
     }
 
+    if (telemetryUrl.length() == 0) {
+      telemetryUrl =
+        DEFAULT_TELEMETRY_URL;
+
+      enabled = true;
+
+      nvs_set_str(
+        configurationHandle,
+        "url",
+        telemetryUrl.c_str()
+      );
+
+      nvs_set_u32(
+        configurationHandle,
+        "interval",
+        telemetryIntervalSeconds
+      );
+
+      nvs_set_u8(
+        configurationHandle,
+        "enabled",
+        1
+      );
+
+      nvs_commit(
+        configurationHandle
+      );
+
+      Serial.println(
+        "Configuracao cloud oficial aplicada no primeiro uso."
+      );
+    }
+
     nvs_close(configurationHandle);
   }
 
