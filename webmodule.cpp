@@ -3,6 +3,7 @@
 
 #include "webmodule.h"
 #include "webassets.h"
+#include "setupassets.h"
 
 WebModule::WebModule(
   TemperatureModule& temperatureModule,
@@ -32,6 +33,7 @@ WebModule::WebModule(
   eventLog(eventLogModule),
   cloud(cloudModule),
   initialized(false),
+  stationWasConnected(false),
   firmwareUpdateInProgress(false),
   firmwareUpdateSucceeded(false),
   restartScheduled(false),
@@ -61,6 +63,22 @@ void WebModule::configureRoutes() {
   );
 
   server.on(
+    "/dashboard",
+    HTTP_GET,
+    [this]() {
+      handleDashboard();
+    }
+  );
+
+  server.on(
+    "/setup",
+    HTTP_GET,
+    [this]() {
+      handleSetup();
+    }
+  );
+
+  server.on(
     "/save",
     HTTP_POST,
     [this]() {
@@ -81,6 +99,14 @@ void WebModule::configureRoutes() {
     HTTP_POST,
     [this]() {
       handleWifiForget();
+    }
+  );
+
+  server.on(
+    "/setup/complete",
+    HTTP_POST,
+    [this]() {
+      handleSetupComplete();
     }
   );
 
@@ -275,6 +301,23 @@ void WebModule::update() {
     return;
   }
 
+  const bool stationConnected =
+    WiFi.status() == WL_CONNECTED;
+
+  if (
+    stationConnected &&
+    !stationWasConnected
+  ) {
+    server.stop();
+    server.begin();
+
+    Serial.println(
+      "Interface web reaberta no IP do Wi-Fi domestico."
+    );
+  }
+
+  stationWasConnected = stationConnected;
+
   server.handleClient();
 
   if (
@@ -296,6 +339,15 @@ IPAddress WebModule::getIpAddress() const {
 }
 
 void WebModule::handleRoot() {
+  if (network.isAccessPointStarted()) {
+    handleSetup();
+    return;
+  }
+
+  handleDashboard();
+}
+
+void WebModule::handleDashboard() {
   server.sendHeader(
     "Cache-Control",
     "no-store"
@@ -318,6 +370,20 @@ void WebModule::handleRoot() {
       INDEX_HTML_GZ
     ),
     INDEX_HTML_GZ_LEN
+  );
+
+}
+
+void WebModule::handleSetup() {
+  server.sendHeader(
+    "Cache-Control",
+    "no-store"
+  );
+
+  server.send_P(
+    200,
+    "text/html; charset=utf-8",
+    SETUP_HTML
   );
 }
 
@@ -518,6 +584,24 @@ void WebModule::handleWifiForget() {
     200,
     "application/json; charset=utf-8",
     "{\"success\":true,\"message\":\"Wi-Fi domestico removido. A rede propria permanece ativa.\"}"
+  );
+}
+
+void WebModule::handleSetupComplete() {
+  if (!network.completeConfiguration()) {
+    server.send(
+      409,
+      "application/json; charset=utf-8",
+      "{\"success\":false,\"message\":\"Aguarde o controlador confirmar a conexao com o Wi-Fi.\"}"
+    );
+
+    return;
+  }
+
+  server.send(
+    200,
+    "application/json; charset=utf-8",
+    "{\"success\":true,\"message\":\"Rede validada. Finalizando a configuracao local.\"}"
   );
 }
 
@@ -2118,6 +2202,11 @@ String WebModule::buildApiJson() const {
 
   json += ",\"stationConnected\":";
   json += network.isStationConnected()
+    ? "true"
+    : "false";
+
+  json += ",\"configurationCompletionPending\":";
+  json += network.isConfigurationCompletionPending()
     ? "true"
     : "false";
 

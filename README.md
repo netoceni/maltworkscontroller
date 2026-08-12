@@ -1,4 +1,86 @@
-# Maltworks Controller — Fase 5.2.0
+# Maltworks Controller — Fase 5.3.2
+
+## Desenvolvimento com ESP-IDF
+
+Esta versão foi preparada para o **ESP-IDF 5.3.5** no VS Code. Para preservar o
+comportamento existente durante a migração, o Arduino Core 3.3.11 é usado como
+componente do ESP-IDF. Os módulos serão convertidos gradualmente para APIs
+nativas, sem trocar todo o firmware de uma só vez.
+
+No VS Code:
+
+1. abra uma pasta de caminho curto, por exemplo `C:\Projetos\maltworkscontroller`;
+2. selecione o ESP-IDF 5.3.5 na extensão Espressif;
+3. selecione o alvo `esp32` e a placa ESP32 DevKit;
+4. use **ESP-IDF: Build your project** para compilar;
+5. conecte o controlador, selecione a porta serial e use **UART** para gravar;
+6. abra o monitor serial em 115200 baud.
+
+Pelo terminal ESP-IDF, os comandos equivalentes são:
+
+```powershell
+idf.py build
+idf.py -p COM6 flash monitor
+```
+
+Troque `COM6` pela porta exibida no seu computador. Antes do primeiro teste de
+bancada, desconecte as cargas de aquecimento e refrigeração: os relés do
+controlador são ativos em nível baixo. A gravação não apaga automaticamente as
+configurações salvas na NVS; para um teste totalmente limpo, use
+`idf.py -p COM6 erase-flash` antes de gravar.
+
+Pinagem atual dos relés:
+
+- `IN1` (resfriamento): GPIO 27;
+- `IN2` (aquecimento): GPIO 26;
+- os relés são ativos em nível baixo.
+
+Pinagem dos sensores de temperatura:
+
+- `DAT` dos DS18B20: GPIO 23;
+- alimentação: 3,3 V;
+- todos os sensores compartilham o mesmo barramento e o mesmo GND.
+
+Pinagem do display OLED I²C:
+
+- `SCL` / clock: GPIO 18;
+- `SDA` / data: GPIO 19;
+- orientação da imagem: rotação de 180°;
+- alimentação conforme a especificação do módulo e GND comum.
+
+## Portal de configuração inicial
+
+A rede `MaltworksController` fica aberta, sem senha, somente enquanto o aparelho
+precisa ser configurado. Ao conectar um celular ou computador, todas as consultas
+DNS são direcionadas ao ESP32 e o sistema operacional pode abrir automaticamente
+a interface em `http://192.168.4.1`, como ocorre em redes Wi-Fi públicas.
+
+Se a janela não aparecer automaticamente, abra esse endereço manualmente no
+navegador. Depois que as credenciais domésticas forem testadas e a conexão for
+estabelecida, o ESP32 desliga a rede de configuração e o portal cativo. A senha
+doméstica nunca é reutilizada no ponto de acesso do controlador. Se o Wi-Fi salvo
+ficar indisponível por 30 segundos, a rede aberta reaparece para recuperação.
+
+O portal de instalação é separado do dashboard operacional. Ele mostra o
+código de cadastro completo, configura o endpoint oficial
+`https://api.maltworks.com.br/v1/telemetry` automaticamente e orienta o cliente
+a concluir o cadastro no Maltworks Cloud. O login acontece somente no domínio
+oficial; usuário e senha nunca são enviados ao ESP32.
+
+Depois de validar as credenciais do Wi-Fi, o portal copia o código de cadastro,
+mantém a confirmação visível por alguns segundos e encerra a rede do controlador.
+O cliente então volta à internet, entra na própria conta e usa a opção
+`Cadastrar controlador`.
+
+> Melhoria 5.3.2: o diagnóstico serial de fábrica também mostra o código de
+> cadastro, sem revelar o token completo de 256 bits do controlador.
+
+> Correção 5.3.1: a interface HTTP local é reaberta assim que o roteador entrega
+> um IP ao controlador, mantendo o dashboard e o código de cadastro acessíveis.
+
+> Novidade 5.3.0: o primeiro acesso usa um código único no formato
+> `MW-XXXXXXXXXXXX-XXXX-XXXX-XXXX-XXXX`. O segredo aleatório de 256 bits
+> continua armazenado apenas no ESP32 e a API conserva somente seu hash.
 
 > Novidade 5.2.0: histerese, proteção mínima do compressor, offsets dos dois
 > sensores e configuração completa dos alarmes podem ser enviados pela nuvem.
@@ -49,7 +131,7 @@
 
 ## Objetivo desta versão
 
-A Fase 5.2.0 mantém o firmware **Cloud Ready** sem transferir para a nuvem nenhuma função crítica de controle. O ESP32 continua executando localmente:
+A Fase 5.3.2 mantém o firmware **Cloud Ready** sem transferir para a nuvem nenhuma função crítica de controle. O ESP32 continua executando localmente:
 
 - leitura e calibração dos dois DS18B20;
 - setpoint, histerese e perfis de fermentação;
@@ -102,7 +184,11 @@ A interface local ganhou uma aba para:
 - solicitar sincronização imediata;
 - renovar o token do dispositivo.
 
-O token completo nunca é retornado pela API local. A tela mostra somente os oito últimos caracteres como código de vínculo. Na próxima etapa, o fluxo previsto é: o dispositivo se apresenta à API por HTTPS, a API armazena apenas o hash do token e o usuário vincula o equipamento à própria conta usando o Device ID e esse código curto. Assim o segredo completo não precisa trafegar pela interface HTTP local.
+O token completo nunca é retornado pela API local. A tela mostra o Device ID e
+somente os 16 últimos caracteres do segredo, combinados em um código de cadastro.
+O dispositivo se apresenta à API por HTTPS, a API armazena apenas hashes e o
+usuário cadastra o equipamento na conta sem que o segredo completo trafegue pela
+interface HTTP local.
 
 ## Contrato HTTP esperado
 
@@ -113,7 +199,7 @@ POST <URL configurada>
 Content-Type: application/json
 Authorization: Bearer <token individual>
 X-Maltworks-Device-ID: MW-XXXXXXXXXXXX
-X-Maltworks-Firmware: 5.2.0
+X-Maltworks-Firmware: 5.3.2
 ```
 
 Qualquer resposta `2xx` confirma a telemetria. `401` e `403` são tratados como falha de autenticação. Demais falhas usam retentativa progressiva.

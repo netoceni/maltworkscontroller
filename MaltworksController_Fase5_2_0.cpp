@@ -18,11 +18,11 @@
 #include "eventlogmodule.h"
 #include "cloudmodule.h"
 
-constexpr uint8_t OLED_SDA_PIN = 21;
-constexpr uint8_t OLED_SCL_PIN = 22;
-constexpr uint8_t TEMPERATURE_SENSOR_PIN = 15;
-constexpr uint8_t COOLING_RELAY_PIN = 2;
-constexpr uint8_t HEATING_RELAY_PIN = 4;
+constexpr uint8_t OLED_SDA_PIN = 19;
+constexpr uint8_t OLED_SCL_PIN = 18;
+constexpr uint8_t TEMPERATURE_SENSOR_PIN = 23;
+constexpr uint8_t COOLING_RELAY_PIN = 27;
+constexpr uint8_t HEATING_RELAY_PIN = 26;
 
 constexpr bool RELAY_ACTIVE_LOW = true;
 
@@ -46,9 +46,6 @@ constexpr float
 
 const char* ACCESS_POINT_NAME =
   "MaltworksController";
-
-const char* ACCESS_POINT_PASSWORD =
-  "maltworks";
 
 DisplayModule displayModule;
 
@@ -575,7 +572,6 @@ void setup() {
   bool networkOk =
     networkModule.begin(
       ACCESS_POINT_NAME,
-      ACCESS_POINT_PASSWORD,
       savedWifiSsid,
       savedWifiPassword
     );
@@ -638,29 +634,25 @@ void setup() {
       "Interface web inicializada."
     );
 
-    Serial.print(
-      "Rede de contingencia: "
-    );
+    if (
+      networkModule.isAccessPointStarted()
+    ) {
+      Serial.print(
+        "Rede de configuracao aberta: "
+      );
 
-    Serial.println(
-      ACCESS_POINT_NAME
-    );
+      Serial.println(
+        ACCESS_POINT_NAME
+      );
 
-    Serial.print(
-      "Senha: "
-    );
+      Serial.print(
+        "Endereco de configuracao: http://"
+      );
 
-    Serial.println(
-      ACCESS_POINT_PASSWORD
-    );
-
-    Serial.print(
-      "Endereco de contingencia: http://"
-    );
-
-    Serial.println(
-      networkModule.getAccessPointIp()
-    );
+      Serial.println(
+        networkModule.getAccessPointIp()
+      );
+    }
   } else {
     Serial.println(
       "Falha ao inicializar rede ou interface web."

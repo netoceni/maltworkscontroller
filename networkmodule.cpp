@@ -1,46 +1,26 @@
 #include "networkmodule.h"
 
 NetworkModule::NetworkModule() :
+  accessPointName(""),
   stationSsid(""),
   stationPassword(""),
   accessPointStarted(false),
+  captivePortalStarted(false),
   connectionPreviouslyReported(false),
-  lastConnectionAttempt(0) {
+  configurationCompletionPending(false),
+  configurationShutdownScheduled(false),
+  lastConnectionAttempt(0),
+  stationDisconnectedSince(0),
+  configurationShutdownScheduledAt(0) {
 }
 
 bool NetworkModule::begin(
   const char* accessPointName,
-  const char* accessPointPassword,
   const String& savedStationSsid,
   const String& savedStationPassword
 ) {
-  WiFi.persistent(false);
-  WiFi.setAutoReconnect(true);
-  WiFi.mode(WIFI_AP_STA);
-
-  accessPointStarted =
-    WiFi.softAP(
-      accessPointName,
-      accessPointPassword
-    );
-
-  if (accessPointStarted) {
-    Serial.println(
-      "Rede de contingencia inicializada."
-    );
-
-    Serial.print(
-      "IP da rede propria: "
-    );
-
-    Serial.println(
-      WiFi.softAPIP()
-    );
-  } else {
-    Serial.println(
-      "Falha ao criar a rede de contingencia."
-    );
-  }
+  this->accessPointName =
+    accessPointName;
 
   stationSsid =
     savedStationSsid;
@@ -50,19 +30,41 @@ bool NetworkModule::begin(
 
   stationSsid.trim();
 
+  WiFi.persistent(false);
+  WiFi.setAutoReconnect(true);
+
   if (hasStationCredentials()) {
+    WiFi.mode(WIFI_STA);
+
+    stationDisconnectedSince =
+      millis();
+
     startStationConnection();
+
+    Serial.println(
+      "Rede de configuracao permanecera desligada se o Wi-Fi conectar."
+    );
   } else {
     Serial.println(
       "Wi-Fi domestico ainda nao configurado."
     );
+
+    return startConfigurationAccessPoint();
   }
 
-  return accessPointStarted;
+  return true;
 }
 
 void NetworkModule::update() {
+  if (captivePortalStarted) {
+    dnsServer.processNextRequest();
+  }
+
   if (!hasStationCredentials()) {
+    if (!accessPointStarted) {
+      startConfigurationAccessPoint();
+    }
+
     return;
   }
 
@@ -96,6 +98,32 @@ void NetworkModule::update() {
     Serial.println(
       WiFi.localIP()
     );
+
+    stationDisconnectedSince = 0;
+
+    if (
+      accessPointStarted &&
+      !configurationCompletionPending
+    ) {
+      stopConfigurationAccessPoint();
+    } else if (
+      accessPointStarted &&
+      configurationCompletionPending
+    ) {
+      Serial.println(
+        "Configuracao concluida. Aguardando confirmacao do usuario para abrir o Maltworks Cloud."
+      );
+    }
+  }
+
+  if (
+    connected &&
+    accessPointStarted &&
+    configurationShutdownScheduled &&
+    millis() - configurationShutdownScheduledAt >=
+      CONFIGURATION_SHUTDOWN_DELAY_MS
+  ) {
+    stopConfigurationAccessPoint();
   }
 
   if (
@@ -109,6 +137,30 @@ void NetworkModule::update() {
     Serial.println(
       "Wi-Fi domestico desconectado."
     );
+
+    stationDisconnectedSince =
+      millis();
+  }
+
+  if (
+    !connected &&
+    stationDisconnectedSince == 0
+  ) {
+    stationDisconnectedSince =
+      millis();
+  }
+
+  if (
+    !connected &&
+    !accessPointStarted &&
+    millis() - stationDisconnectedSince >=
+      CONFIGURATION_FALLBACK_DELAY_MS
+  ) {
+    Serial.println(
+      "Wi-Fi indisponivel. Reabrindo a configuracao local."
+    );
+
+    startConfigurationAccessPoint();
   }
 
   if (
@@ -147,6 +199,20 @@ bool NetworkModule::connectStation(
   connectionPreviouslyReported =
     false;
 
+  if (accessPointStarted) {
+    configurationCompletionPending =
+      true;
+
+    configurationShutdownScheduled =
+      false;
+
+    configurationShutdownScheduledAt =
+      0;
+  }
+
+  stationDisconnectedSince =
+    millis();
+
   startStationConnection();
 
   return true;
@@ -164,14 +230,54 @@ void NetworkModule::disconnectStation() {
   connectionPreviouslyReported =
     false;
 
+  configurationCompletionPending =
+    false;
+
+  configurationShutdownScheduled =
+    false;
+
+  configurationShutdownScheduledAt =
+    0;
+
+  stationDisconnectedSince = 0;
+
+  startConfigurationAccessPoint();
+
   Serial.println(
     "Credenciais do Wi-Fi domestico removidas."
   );
 }
 
+bool NetworkModule::completeConfiguration() {
+  if (
+    !accessPointStarted ||
+    !configurationCompletionPending ||
+    !isStationConnected()
+  ) {
+    return false;
+  }
+
+  configurationShutdownScheduled =
+    true;
+
+  configurationShutdownScheduledAt =
+    millis();
+
+  Serial.println(
+    "Configuracao finalizada. A rede local sera encerrada."
+  );
+
+  return true;
+}
+
 bool NetworkModule::
 isAccessPointStarted() const {
   return accessPointStarted;
+}
+
+bool NetworkModule::
+isConfigurationCompletionPending() const {
+  return configurationCompletionPending;
 }
 
 bool NetworkModule::
@@ -250,7 +356,93 @@ getStationRssi() const {
 
 uint8_t NetworkModule::
 getConnectedAccessPointClients() const {
+  if (!accessPointStarted) {
+    return 0;
+  }
+
   return WiFi.softAPgetStationNum();
+}
+
+bool NetworkModule::
+startConfigurationAccessPoint() {
+  if (accessPointStarted) {
+    return true;
+  }
+
+  WiFi.mode(WIFI_AP_STA);
+
+  accessPointStarted =
+    WiFi.softAP(
+      accessPointName.c_str()
+    );
+
+  if (!accessPointStarted) {
+    Serial.println(
+      "Falha ao criar a rede de configuracao."
+    );
+
+    return false;
+  }
+
+  Serial.println(
+    "Rede de configuracao aberta inicializada."
+  );
+
+  Serial.print(
+    "IP da rede propria: "
+  );
+
+  Serial.println(
+    WiFi.softAPIP()
+  );
+
+  dnsServer.setTTL(0);
+  dnsServer.setErrorReplyCode(
+    DNSReplyCode::NoError
+  );
+
+  captivePortalStarted =
+    dnsServer.start(
+      53,
+      "*",
+      WiFi.softAPIP()
+    );
+
+  Serial.println(
+    captivePortalStarted
+      ? "Portal cativo inicializado."
+      : "Falha ao iniciar o portal cativo."
+  );
+
+  return true;
+}
+
+void NetworkModule::
+stopConfigurationAccessPoint() {
+  if (captivePortalStarted) {
+    dnsServer.stop();
+    captivePortalStarted = false;
+  }
+
+  if (accessPointStarted) {
+    WiFi.softAPdisconnect(true);
+    accessPointStarted = false;
+  }
+
+  WiFi.mode(WIFI_STA);
+
+  configurationCompletionPending =
+    false;
+
+  configurationShutdownScheduled =
+    false;
+
+  configurationShutdownScheduledAt =
+    0;
+
+  Serial.println(
+    "Rede de configuracao desativada. Abrindo caminho para o Maltworks Cloud."
+  );
 }
 
 void NetworkModule::

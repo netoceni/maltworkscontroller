@@ -59,6 +59,7 @@ private:
   CloudModule& cloud;
 
   bool initialized;
+  bool stationWasConnected;
   bool firmwareUpdateInProgress;
   bool firmwareUpdateSucceeded;
   bool restartScheduled;
@@ -76,9 +77,12 @@ private:
   void configureRoutes();
 
   void handleRoot();
+  void handleDashboard();
+  void handleSetup();
   void handleSave();
   void handleWifiSave();
   void handleWifiForget();
+  void handleSetupComplete();
   void handleFirmwarePreflight();
   void handleFirmwareUpdateEnd();
   void handleFirmwareUpload();

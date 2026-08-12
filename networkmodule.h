@@ -2,6 +2,7 @@
 #define NETWORKMODULE_H
 
 #include <Arduino.h>
+#include <DNSServer.h>
 #include <WiFi.h>
 
 class NetworkModule {
@@ -10,7 +11,6 @@ public:
 
   bool begin(
     const char* accessPointName,
-    const char* accessPointPassword,
     const String& stationSsid,
     const String& stationPassword
   );
@@ -24,7 +24,10 @@ public:
 
   void disconnectStation();
 
+  bool completeConfiguration();
+
   bool isAccessPointStarted() const;
+  bool isConfigurationCompletionPending() const;
   bool hasStationCredentials() const;
   bool isStationConnected() const;
 
@@ -38,18 +41,36 @@ public:
   uint8_t getConnectedAccessPointClients() const;
 
 private:
+  String accessPointName;
   String stationSsid;
   String stationPassword;
 
+  DNSServer dnsServer;
+
   bool accessPointStarted;
+  bool captivePortalStarted;
   bool connectionPreviouslyReported;
+  bool configurationCompletionPending;
+  bool configurationShutdownScheduled;
 
   unsigned long lastConnectionAttempt;
+  unsigned long stationDisconnectedSince;
+  unsigned long configurationShutdownScheduledAt;
 
   static constexpr unsigned long
     RECONNECT_INTERVAL_MS =
       15UL * 1000UL;
 
+  static constexpr unsigned long
+    CONFIGURATION_FALLBACK_DELAY_MS =
+      30UL * 1000UL;
+
+  static constexpr unsigned long
+    CONFIGURATION_SHUTDOWN_DELAY_MS =
+      5000UL;
+
+  bool startConfigurationAccessPoint();
+  void stopConfigurationAccessPoint();
   void startStationConnection();
 };
 

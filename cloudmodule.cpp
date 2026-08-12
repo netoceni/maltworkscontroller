@@ -2,6 +2,7 @@
 #include <WiFiClientSecure.h>
 #include <esp_err.h>
 #include <esp_system.h>
+#include <inttypes.h>
 #include <math.h>
 #include <nvs.h>
 #include <stdlib.h>
@@ -64,7 +65,11 @@ CloudModule::CloudModule(
   status(Status::CLOUD_DISABLED),
   telemetryQueue(nullptr),
   stateMutex(nullptr),
-  workerTask(nullptr) {
+  workerTask(nullptr),
+  workerJob({}),
+  minimumWorkerStackRemaining(
+    WORKER_STACK_SIZE_BYTES
+  ) {
 }
 
 bool CloudModule::begin() {
@@ -226,6 +231,39 @@ bool CloudModule::begin() {
       enabled = savedEnabled != 0;
     }
 
+    if (telemetryUrl.length() == 0) {
+      telemetryUrl =
+        DEFAULT_TELEMETRY_URL;
+
+      enabled = true;
+
+      nvs_set_str(
+        configurationHandle,
+        "url",
+        telemetryUrl.c_str()
+      );
+
+      nvs_set_u32(
+        configurationHandle,
+        "interval",
+        telemetryIntervalSeconds
+      );
+
+      nvs_set_u8(
+        configurationHandle,
+        "enabled",
+        1
+      );
+
+      nvs_commit(
+        configurationHandle
+      );
+
+      Serial.println(
+        "Configuracao cloud oficial aplicada no primeiro uso."
+      );
+    }
+
     nvs_close(configurationHandle);
   }
 
@@ -258,6 +296,16 @@ bool CloudModule::begin() {
   );
 
   Serial.println(deviceId);
+
+  Serial.print(
+    "Codigo de cadastro: "
+  );
+
+  Serial.print(deviceId);
+  Serial.print("-");
+  Serial.println(
+    getDeviceTokenHint()
+  );
 
   Serial.println(
     enabled
@@ -594,12 +642,19 @@ String CloudModule::getDeviceId() const {
 String CloudModule::getDeviceTokenHint() const {
   lockState();
 
-  String hint =
-    deviceToken.length() >= 8
+  String compact =
+    deviceToken.length() >= 16
       ? deviceToken.substring(
-          deviceToken.length() - 8
+          deviceToken.length() - 16
         )
-      : "--------";
+      : "";
+
+  String hint = compact.length() == 16
+    ? compact.substring(0, 4) + "-" +
+      compact.substring(4, 8) + "-" +
+      compact.substring(8, 12) + "-" +
+      compact.substring(12, 16)
+    : "---- ---- ---- ----";
 
   unlockState();
 
@@ -787,17 +842,40 @@ void CloudModule::workerTaskEntry(
 }
 
 void CloudModule::workerLoop() {
-  TelemetryJob job;
-
   while (true) {
     if (
       xQueueReceive(
         telemetryQueue,
-        &job,
+        &workerJob,
         portMAX_DELAY
       ) == pdTRUE
     ) {
-      sendTelemetry(job);
+      sendTelemetry(workerJob);
+
+      UBaseType_t remaining =
+        uxTaskGetStackHighWaterMark(
+          nullptr
+        );
+
+      if (
+        remaining <
+          minimumWorkerStackRemaining
+      ) {
+        minimumWorkerStackRemaining =
+          remaining;
+
+        Serial.print(
+          "Pilha livre minima da tarefa cloud: "
+        );
+
+        Serial.print(
+          minimumWorkerStackRemaining
+        );
+
+        Serial.println(
+          " bytes."
+        );
+      }
     }
   }
 }
@@ -1029,7 +1107,7 @@ bool CloudModule::createWorker() {
     xTaskCreate(
       workerTaskEntry,
       "mw-cloud",
-      8192,
+      WORKER_STACK_SIZE_BYTES,
       this,
       1,
       &workerTask
@@ -1754,7 +1832,7 @@ String CloudModule::buildDeviceId() const {
   snprintf(
     buffer,
     sizeof(buffer),
-    "MW-%04X%08X",
+    "MW-%04" PRIX16 "%08" PRIX32,
     static_cast<uint16_t>(
       chipId >> 32
     ),
