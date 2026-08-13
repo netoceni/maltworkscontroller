@@ -79,6 +79,7 @@ private:
   void handleRoot();
   void handleDashboard();
   void handleSetup();
+  void handleCaptivePortalProbe();
   void handleSave();
   void handleWifiSave();
   void handleWifiForget();

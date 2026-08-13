@@ -78,6 +78,71 @@ void WebModule::configureRoutes() {
     }
   );
 
+  auto captivePortalProbe =
+    [this]() {
+      handleCaptivePortalProbe();
+    };
+
+  server.on(
+    "/generate_204",
+    HTTP_GET,
+    captivePortalProbe
+  );
+
+  server.on(
+    "/gen_204",
+    HTTP_GET,
+    captivePortalProbe
+  );
+
+  server.on(
+    "/hotspot-detect.html",
+    HTTP_GET,
+    captivePortalProbe
+  );
+
+  server.on(
+    "/library/test/success.html",
+    HTTP_GET,
+    captivePortalProbe
+  );
+
+  server.on(
+    "/connecttest.txt",
+    HTTP_GET,
+    captivePortalProbe
+  );
+
+  server.on(
+    "/ncsi.txt",
+    HTTP_GET,
+    captivePortalProbe
+  );
+
+  server.on(
+    "/fwlink",
+    HTTP_GET,
+    captivePortalProbe
+  );
+
+  server.on(
+    "/canonical.html",
+    HTTP_GET,
+    captivePortalProbe
+  );
+
+  server.on(
+    "/success.txt",
+    HTTP_GET,
+    captivePortalProbe
+  );
+
+  server.on(
+    "/connectivity-check.html",
+    HTTP_GET,
+    captivePortalProbe
+  );
+
   server.on(
     "/save",
     HTTP_POST,
@@ -384,6 +449,44 @@ void WebModule::handleSetup() {
     200,
     "text/html; charset=utf-8",
     SETUP_HTML
+  );
+}
+
+void WebModule::handleCaptivePortalProbe() {
+  if (!network.isAccessPointStarted()) {
+    handleDashboard();
+    return;
+  }
+
+  String setupUrl =
+    "http://" +
+    network.getAccessPointIp().toString() +
+    "/";
+
+  server.sendHeader(
+    "Cache-Control",
+    "no-store, no-cache, must-revalidate, max-age=0"
+  );
+
+  server.sendHeader(
+    "Pragma",
+    "no-cache"
+  );
+
+  server.sendHeader(
+    "Expires",
+    "-1"
+  );
+
+  server.sendHeader(
+    "Location",
+    setupUrl
+  );
+
+  server.send(
+    302,
+    "text/plain; charset=utf-8",
+    "Abrindo configuracao do Maltworks Controller."
   );
 }
 
@@ -1922,9 +2025,14 @@ void WebModule::handleHistoryApi() {
 }
 
 void WebModule::handleNotFound() {
+  if (network.isAccessPointStarted()) {
+    handleCaptivePortalProbe();
+    return;
+  }
+
   server.sendHeader(
     "Location",
-    "/"
+    "/dashboard"
   );
 
   server.send(

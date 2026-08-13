@@ -79,6 +79,10 @@ mantém a confirmação visível por alguns segundos e encerra a rede do control
 O cliente então volta à internet, entra na própria conta e usa a opção
 `Cadastrar controlador`.
 
+> Correção 5.3.3: o portal responde explicitamente às verificações de
+> conectividade do Android, iOS/macOS, Windows e Firefox e usa um endereço HTTP
+> absoluto para abrir automaticamente a configuração inicial.
+
 > Melhoria 5.3.2: o diagnóstico serial de fábrica também mostra o código de
 > cadastro, sem revelar o token completo de 256 bits do controlador.
 
