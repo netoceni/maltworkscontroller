@@ -39,6 +39,7 @@ public:
 
   int32_t getStationRssi() const;
   uint8_t getConnectedAccessPointClients() const;
+  bool shouldRestartForConnectivity() const;
 
 private:
   String accessPointName;
@@ -52,10 +53,12 @@ private:
   bool connectionPreviouslyReported;
   bool configurationCompletionPending;
   bool configurationShutdownScheduled;
+  bool hasConnectedSinceBoot;
 
   unsigned long lastConnectionAttempt;
   unsigned long stationDisconnectedSince;
   unsigned long configurationShutdownScheduledAt;
+  unsigned long lastRadioRecoveryAt;
 
   static constexpr unsigned long
     RECONNECT_INTERVAL_MS =
@@ -69,9 +72,22 @@ private:
     CONFIGURATION_SHUTDOWN_DELAY_MS =
       5000UL;
 
+  static constexpr unsigned long
+    RADIO_RECOVERY_DELAY_MS =
+      60UL * 1000UL;
+
+  static constexpr unsigned long
+    RADIO_RECOVERY_INTERVAL_MS =
+      60UL * 1000UL;
+
+  static constexpr unsigned long
+    SYSTEM_RECOVERY_DELAY_MS =
+      5UL * 60UL * 1000UL;
+
   bool startConfigurationAccessPoint();
   void stopConfigurationAccessPoint();
   void startStationConnection();
+  void recoverStationRadio();
 };
 
 #endif

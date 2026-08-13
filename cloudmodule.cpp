@@ -358,8 +358,15 @@ void CloudModule::update() {
     lastSuccessMillis;
   unsigned long scheduledAt =
     nextAttemptMillis;
+  unsigned long attemptStartedAt =
+    lastAttemptStartedMillis;
+  uint32_t failureCount =
+    consecutiveFailures;
+  Status currentStatus = status;
 
   unlockState();
+
+  unsigned long recoveryCheckTime = millis();
 
   if (!cloudEnabled) {
     stopRealtimeConnection();
@@ -371,6 +378,27 @@ void CloudModule::update() {
     stopRealtimeConnection();
     setStatus(
       Status::CONFIGURATION_ERROR
+    );
+    return;
+  }
+
+  if (
+    busy &&
+    hadSuccessfulSync &&
+    recoveryCheckTime - attemptStartedAt >=
+      REQUEST_WATCHDOG_MS
+  ) {
+    restartForRecovery(
+      EventLogModule::Category::CLOUD,
+      "Reinicio automatico: requisicao cloud travada."
+    );
+    return;
+  }
+
+  if (network.shouldRestartForConnectivity()) {
+    restartForRecovery(
+      EventLogModule::Category::NETWORK,
+      "Reinicio automatico: Wi-Fi indisponivel por 5 minutos."
     );
     return;
   }
@@ -441,6 +469,25 @@ void CloudModule::update() {
       otaTask = nullptr;
       unlockState();
     }
+    return;
+  }
+
+  bool transportFailure =
+    currentStatus == Status::NETWORK_ERROR ||
+    currentStatus == Status::TLS_ERROR;
+
+  if (
+    hadSuccessfulSync &&
+    transportFailure &&
+    failureCount >=
+      TRANSPORT_FAILURES_BEFORE_RESTART &&
+    recoveryCheckTime - successfulAt >=
+      TRANSPORT_RECOVERY_DELAY_MS
+  ) {
+    restartForRecovery(
+      EventLogModule::Category::CLOUD,
+      "Reinicio automatico: comunicacao cloud sem recuperar."
+    );
     return;
   }
 
@@ -1626,6 +1673,25 @@ void CloudModule::completeRequest(
   }
 
   unlockState();
+}
+
+void CloudModule::restartForRecovery(
+  EventLogModule::Category category,
+  const String& reason
+) {
+  eventLog.add(category, reason);
+
+  Preferences health;
+
+  if (health.begin("mwhealth", false)) {
+    health.putString("reason", reason);
+    health.end();
+  }
+
+  Serial.println(reason);
+  Serial.flush();
+  delay(100);
+  esp_restart();
 }
 
 bool CloudModule::createWorker() {

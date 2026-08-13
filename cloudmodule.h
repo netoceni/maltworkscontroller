@@ -106,6 +106,17 @@ private:
   static constexpr uint32_t
     OTA_CHECK_INTERVAL_SECONDS = 60;
 
+  static constexpr unsigned long
+    REQUEST_WATCHDOG_MS =
+      30UL * 1000UL;
+
+  static constexpr unsigned long
+    TRANSPORT_RECOVERY_DELAY_MS =
+      10UL * 60UL * 1000UL;
+
+  static constexpr uint32_t
+    TRANSPORT_FAILURES_BEFORE_RESTART = 6;
+
   static constexpr size_t
     MAXIMUM_URL_LENGTH = 190;
 
@@ -267,6 +278,11 @@ private:
     const String& error,
     uint32_t sentEpoch,
     const String& acknowledgedCommandId = ""
+  );
+
+  void restartForRecovery(
+    EventLogModule::Category category,
+    const String& reason
   );
 
   bool createWorker();

@@ -9,9 +9,11 @@ NetworkModule::NetworkModule() :
   connectionPreviouslyReported(false),
   configurationCompletionPending(false),
   configurationShutdownScheduled(false),
+  hasConnectedSinceBoot(false),
   lastConnectionAttempt(0),
   stationDisconnectedSince(0),
-  configurationShutdownScheduledAt(0) {
+  configurationShutdownScheduledAt(0),
+  lastRadioRecoveryAt(0) {
 }
 
 bool NetworkModule::begin(
@@ -100,6 +102,7 @@ void NetworkModule::update() {
     );
 
     stationDisconnectedSince = 0;
+    hasConnectedSinceBoot = true;
 
     if (
       accessPointStarted &&
@@ -161,6 +164,25 @@ void NetworkModule::update() {
     );
 
     startConfigurationAccessPoint();
+  }
+
+  unsigned long currentTime = millis();
+
+  if (
+    !connected &&
+    !configurationCompletionPending &&
+    getConnectedAccessPointClients() == 0 &&
+    stationDisconnectedSince != 0 &&
+    currentTime - stationDisconnectedSince >=
+      RADIO_RECOVERY_DELAY_MS &&
+    (
+      lastRadioRecoveryAt == 0 ||
+      currentTime - lastRadioRecoveryAt >=
+        RADIO_RECOVERY_INTERVAL_MS
+    )
+  ) {
+    recoverStationRadio();
+    return;
   }
 
   if (
@@ -289,6 +311,17 @@ bool NetworkModule::
 isStationConnected() const {
   return WiFi.status() ==
     WL_CONNECTED;
+}
+
+bool NetworkModule::
+shouldRestartForConnectivity() const {
+  return hasConnectedSinceBoot &&
+    !isStationConnected() &&
+    !configurationCompletionPending &&
+    getConnectedAccessPointClients() == 0 &&
+    stationDisconnectedSince != 0 &&
+    millis() - stationDisconnectedSince >=
+      SYSTEM_RECOVERY_DELAY_MS;
 }
 
 String NetworkModule::
@@ -478,5 +511,31 @@ startStationConnection() {
       stationSsid.c_str(),
       stationPassword.c_str()
     );
+  }
+}
+
+void NetworkModule::recoverStationRadio() {
+  lastRadioRecoveryAt = millis();
+
+  bool restoreConfigurationAccessPoint =
+    accessPointStarted;
+
+  Serial.println(
+    "Wi-Fi sem resposta. Reinicializando somente o radio."
+  );
+
+  if (restoreConfigurationAccessPoint) {
+    stopConfigurationAccessPoint();
+  }
+
+  WiFi.disconnect(false, false);
+  WiFi.mode(WIFI_OFF);
+  delay(30);
+  WiFi.mode(WIFI_STA);
+
+  startStationConnection();
+
+  if (restoreConfigurationAccessPoint) {
+    startConfigurationAccessPoint();
   }
 }
