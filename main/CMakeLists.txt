@@ -24,6 +24,7 @@ idf_component_register(
     INCLUDE_DIRS ".."
     REQUIRES
         arduino-esp32
+        esp_websocket_client
         nvs_flash
         onewire
         dallas_temperature
@@ -31,3 +32,9 @@ idf_component_register(
         adafruit_gfx
         adafruit_ssd1306
 )
+
+# Arduino 3.3.x ainda inicializa algumas estruturas do ESP-IDF 6 sem os
+# campos adicionados mais recentemente. Elas permanecem zeradas por contrato;
+# evite que esse aviso de compatibilidade interrompa o build do componente.
+idf_component_get_property(arduino_component espressif__arduino-esp32 COMPONENT_LIB)
+target_compile_options(${arduino_component} PRIVATE -Wno-error=missing-field-initializers)

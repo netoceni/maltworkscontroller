@@ -1,9 +1,11 @@
 #include <HTTPClient.h>
 #include <WiFiClientSecure.h>
 #include <esp_err.h>
+#include <esp_event.h>
 #include <esp_system.h>
+#include <esp_websocket_client.h>
 #include <inttypes.h>
-#include <math.h>
+#include <cmath>
 #include <nvs.h>
 #include <stdlib.h>
 
@@ -43,12 +45,16 @@ CloudModule::CloudModule(
   acknowledgementCommandId(""),
   acknowledgementStatus(""),
   acknowledgementMessage(""),
+  realtimeUrl(""),
+  realtimeHeaders(""),
+  realtimeMessageBuffer(""),
   initialized(false),
   enabled(false),
   requestInProgress(false),
   hasSuccessfulSync(false),
   pendingCommandAvailable(false),
   acknowledgementPending(false),
+  realtimeConnected(false),
   pendingCommandSetpoint(0.0f),
   acknowledgementSetpoint(0.0f),
   pendingCommandExpiresAt(0),
@@ -61,11 +67,14 @@ CloudModule::CloudModule(
   lastSuccessMillis(0),
   lastAttemptStartedMillis(0),
   nextAttemptMillis(0),
+  lastRealtimeAttemptMillis(0),
+  lastRealtimeHeartbeatMillis(0),
   lastHttpCode(0),
   status(Status::CLOUD_DISABLED),
   telemetryQueue(nullptr),
   stateMutex(nullptr),
   workerTask(nullptr),
+  realtimeClient(nullptr),
   workerJob({}),
   minimumWorkerStackRemaining(
     WORKER_STACK_SIZE_BYTES
@@ -339,11 +348,13 @@ void CloudModule::update() {
   unlockState();
 
   if (!cloudEnabled) {
+    stopRealtimeConnection();
     setStatus(Status::CLOUD_DISABLED);
     return;
   }
 
   if (!configured) {
+    stopRealtimeConnection();
     setStatus(
       Status::CONFIGURATION_ERROR
     );
@@ -351,6 +362,7 @@ void CloudModule::update() {
   }
 
   if (!network.isStationConnected()) {
+    stopRealtimeConnection();
     setStatus(
       Status::WAITING_NETWORK
     );
@@ -358,11 +370,14 @@ void CloudModule::update() {
   }
 
   if (!clock.isSynchronized()) {
+    stopRealtimeConnection();
     setStatus(
       Status::WAITING_CLOCK
     );
     return;
   }
+
+  updateRealtimeConnection();
 
   if (busy) {
     return;
@@ -532,6 +547,8 @@ bool CloudModule::saveConfiguration(
 
   unlockState();
 
+  stopRealtimeConnection();
+
   return true;
 }
 
@@ -610,6 +627,8 @@ bool CloudModule::regenerateDeviceToken() {
     : Status::CLOUD_DISABLED;
 
   unlockState();
+
+  stopRealtimeConnection();
 
   return true;
 }
@@ -1022,6 +1041,263 @@ void CloudModule::sendTelemetry(
   );
 }
 
+void CloudModule::realtimeEventEntry(
+  void* handlerArguments,
+  esp_event_base_t eventBase,
+  int32_t eventId,
+  void* eventData
+) {
+  (void)eventBase;
+
+  CloudModule* instance =
+    static_cast<CloudModule*>(
+      handlerArguments
+    );
+
+  if (instance != nullptr) {
+    instance->handleRealtimeEvent(
+      eventId,
+      static_cast<
+        esp_websocket_event_data_t*
+      >(eventData)
+    );
+  }
+}
+
+void CloudModule::updateRealtimeConnection() {
+  esp_websocket_client_handle_t client;
+  bool connected;
+
+  lockState();
+  client = realtimeClient;
+  connected = realtimeConnected;
+  unlockState();
+
+  unsigned long currentTime = millis();
+
+  if (client == nullptr) {
+    if (
+      currentTime - lastRealtimeAttemptMillis <
+        5000UL
+    ) {
+      return;
+    }
+
+    lastRealtimeAttemptMillis = currentTime;
+    realtimeUrl = buildRealtimeUrl();
+
+    if (realtimeUrl.length() == 0) {
+      return;
+    }
+
+    realtimeHeaders =
+      "Authorization: Bearer " +
+      deviceToken +
+      "\r\nX-Maltworks-Device-ID: " +
+      deviceId +
+      "\r\nX-Maltworks-Firmware: " +
+      String(FirmwareInfo::VERSION) +
+      "\r\n";
+
+    esp_websocket_client_config_t config = {};
+    config.uri = realtimeUrl.c_str();
+    config.user_context = this;
+    config.task_name = "mw-realtime";
+    config.task_stack = 8192;
+    config.buffer_size = 2048;
+    config.cert_pem = MALTWORKS_CLOUD_ROOT_CA;
+    config.headers = realtimeHeaders.c_str();
+    config.user_agent = "MaltworksController-Realtime";
+    config.reconnect_timeout_ms = 5000;
+    config.network_timeout_ms = 5000;
+    config.ping_interval_sec = 10;
+    config.pingpong_timeout_sec = 20;
+    config.keep_alive_enable = true;
+    config.keep_alive_idle = 10;
+    config.keep_alive_interval = 5;
+    config.keep_alive_count = 3;
+    config.enable_close_reconnect = true;
+
+    client =
+      esp_websocket_client_init(
+        &config
+      );
+
+    if (client == nullptr) {
+      Serial.println(
+        "Falha ao iniciar canal cloud em tempo real."
+      );
+      return;
+    }
+
+    lockState();
+    realtimeClient = client;
+    realtimeConnected = false;
+    lastRealtimeHeartbeatMillis = 0;
+    unlockState();
+
+    esp_err_t registerResult =
+      esp_websocket_register_events(
+        client,
+        WEBSOCKET_EVENT_ANY,
+        realtimeEventEntry,
+        this
+      );
+
+    esp_err_t startResult =
+      registerResult == ESP_OK
+        ? esp_websocket_client_start(client)
+        : registerResult;
+
+    if (startResult != ESP_OK) {
+      Serial.print(
+        "Falha ao conectar canal cloud: "
+      );
+      Serial.println(
+        esp_err_to_name(startResult)
+      );
+      lockState();
+      if (realtimeClient == client) {
+        realtimeClient = nullptr;
+      }
+      realtimeConnected = false;
+      unlockState();
+      esp_websocket_client_destroy(client);
+      return;
+    }
+    return;
+  }
+
+  if (
+    connected &&
+    currentTime - lastRealtimeHeartbeatMillis >=
+      REALTIME_HEARTBEAT_SECONDS * 1000UL
+  ) {
+    const char heartbeat[] =
+      "{\"type\":\"heartbeat\"}";
+
+    int sent =
+      esp_websocket_client_send_text(
+        client,
+        heartbeat,
+        sizeof(heartbeat) - 1,
+        pdMS_TO_TICKS(100)
+      );
+
+    if (sent > 0) {
+      lastRealtimeHeartbeatMillis =
+        currentTime;
+    }
+  }
+}
+
+void CloudModule::stopRealtimeConnection() {
+  esp_websocket_client_handle_t client;
+
+  lockState();
+  client = realtimeClient;
+  realtimeClient = nullptr;
+  realtimeConnected = false;
+  realtimeMessageBuffer = "";
+  unlockState();
+
+  if (client != nullptr) {
+    esp_websocket_client_stop(client);
+    esp_websocket_client_destroy(client);
+  }
+}
+
+void CloudModule::handleRealtimeEvent(
+  int32_t eventId,
+  esp_websocket_event_data_t* eventData
+) {
+  if (eventId == WEBSOCKET_EVENT_CONNECTED) {
+    lockState();
+    realtimeConnected = true;
+    lastRealtimeHeartbeatMillis = 0;
+    unlockState();
+
+    Serial.println(
+      "Canal cloud em tempo real conectado."
+    );
+    return;
+  }
+
+  if (
+    eventId == WEBSOCKET_EVENT_DISCONNECTED ||
+    eventId == WEBSOCKET_EVENT_CLOSED ||
+    eventId == WEBSOCKET_EVENT_ERROR
+  ) {
+    lockState();
+    realtimeConnected = false;
+    unlockState();
+    return;
+  }
+
+  if (
+    eventId != WEBSOCKET_EVENT_DATA ||
+    eventData == nullptr ||
+    eventData->op_code != 0x1 ||
+    eventData->data_ptr == nullptr ||
+    eventData->data_len <= 0 ||
+    eventData->payload_len > 4096
+  ) {
+    return;
+  }
+
+  if (eventData->payload_offset == 0) {
+    realtimeMessageBuffer = "";
+    realtimeMessageBuffer.reserve(
+      eventData->payload_len + 1
+    );
+  }
+
+  for (
+    int index = 0;
+    index < eventData->data_len;
+    index++
+  ) {
+    realtimeMessageBuffer +=
+      eventData->data_ptr[index];
+  }
+
+  if (
+    eventData->fin &&
+    eventData->payload_offset +
+      eventData->data_len >=
+      eventData->payload_len
+  ) {
+    handleCommandResponse(
+      realtimeMessageBuffer
+    );
+    realtimeMessageBuffer = "";
+  }
+}
+
+String CloudModule::buildRealtimeUrl() const {
+  String url = telemetryUrl;
+
+  if (url.startsWith("https://")) {
+    url = "wss://" + url.substring(8);
+  } else if (url.startsWith("http://")) {
+    url = "ws://" + url.substring(7);
+  } else {
+    return "";
+  }
+
+  int schemeEnd = url.indexOf("://");
+  int pathStart = url.indexOf(
+    '/',
+    schemeEnd + 3
+  );
+
+  if (pathStart >= 0) {
+    url = url.substring(0, pathStart);
+  }
+
+  return url + "/v1/device/realtime";
+}
+
 void CloudModule::completeRequest(
   bool success,
   Status resultStatus,
@@ -1263,7 +1539,7 @@ void CloudModule::applyPendingCommand() {
     } else if (
       requestedSetpoint < -10.0f ||
       requestedSetpoint > 40.0f ||
-      !isfinite(requestedSetpoint)
+      !std::isfinite(requestedSetpoint)
     ) {
       resultMessage =
         "Setpoint remoto fora dos limites.";
@@ -1522,7 +1798,7 @@ void CloudModule::applyPendingCommand() {
       if (
         manualSetpoint >= -10.0f &&
         manualSetpoint <= 40.0f &&
-        isfinite(manualSetpoint)
+        std::isfinite(manualSetpoint)
       ) {
         control.setSetpoint(
           manualSetpoint
@@ -1544,7 +1820,7 @@ void CloudModule::applyPendingCommand() {
       if (
         manualSetpoint >= -10.0f &&
         manualSetpoint <= 40.0f &&
-        isfinite(manualSetpoint)
+        std::isfinite(manualSetpoint)
       ) {
         control.setSetpoint(
           manualSetpoint
@@ -1672,7 +1948,7 @@ void CloudModule::handleCommandResponse(
       ) &&
       requestedSetpoint >= -10.0f &&
       requestedSetpoint <= 40.0f &&
-      isfinite(requestedSetpoint);
+      std::isfinite(requestedSetpoint);
   } else if (
     commandType == "start_profile"
   ) {
@@ -2415,7 +2691,7 @@ bool CloudModule::extractJsonFloat(
 
   if (
     numberEnd == numberStart ||
-    !isfinite(parsed)
+    !std::isfinite(parsed)
   ) {
     return false;
   }
@@ -2500,26 +2776,26 @@ isValidConfigurationCommand(
   const ConfigurationCommand& candidate
 ) const {
   return
-    isfinite(candidate.hysteresis) &&
+    std::isfinite(candidate.hysteresis) &&
     candidate.hysteresis >= 0.1f &&
     candidate.hysteresis <= 5.0f &&
     candidate.compressorProtectionSeconds >=
       60UL &&
     candidate.compressorProtectionSeconds <=
       900UL &&
-    isfinite(candidate.refrigeratorOffset) &&
+    std::isfinite(candidate.refrigeratorOffset) &&
     candidate.refrigeratorOffset >= -10.0f &&
     candidate.refrigeratorOffset <= 10.0f &&
-    isfinite(candidate.thermalWellOffset) &&
+    std::isfinite(candidate.thermalWellOffset) &&
     candidate.thermalWellOffset >= -10.0f &&
     candidate.thermalWellOffset <= 10.0f &&
-    isfinite(candidate.highTemperatureLimit) &&
-    isfinite(candidate.lowTemperatureLimit) &&
+    std::isfinite(candidate.highTemperatureLimit) &&
+    std::isfinite(candidate.lowTemperatureLimit) &&
     candidate.highTemperatureLimit >
       candidate.lowTemperatureLimit &&
     candidate.highTemperatureLimit <= 60.0f &&
     candidate.lowTemperatureLimit >= -30.0f &&
-    isfinite(candidate.minimumExpectedChange) &&
+    std::isfinite(candidate.minimumExpectedChange) &&
     candidate.minimumExpectedChange >= 0.1f &&
     candidate.minimumExpectedChange <= 10.0f &&
     candidate.responseTimeoutSeconds >= 60UL &&
@@ -2628,7 +2904,7 @@ bool CloudModule::parseStagePlan(
       durationEnd ==
         durationText.c_str() ||
       *durationEnd != '\0' ||
-      !isfinite(temperature) ||
+      !std::isfinite(temperature) ||
       temperature < -10.0f ||
       temperature > 40.0f ||
       duration < 60UL ||

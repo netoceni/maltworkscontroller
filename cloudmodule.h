@@ -7,6 +7,7 @@
 #include <freertos/queue.h>
 #include <freertos/semphr.h>
 #include <freertos/task.h>
+#include <esp_websocket_client.h>
 
 #include "alarmmodule.h"
 #include "clockmodule.h"
@@ -97,6 +98,9 @@ private:
   static constexpr uint32_t
     MAXIMUM_INTERVAL_SECONDS = 3600;
 
+  static constexpr uint32_t
+    REALTIME_HEARTBEAT_SECONDS = 10;
+
   static constexpr size_t
     MAXIMUM_URL_LENGTH = 190;
 
@@ -161,6 +165,9 @@ private:
   String acknowledgementCommandId;
   String acknowledgementStatus;
   String acknowledgementMessage;
+  String realtimeUrl;
+  String realtimeHeaders;
+  String realtimeMessageBuffer;
 
   bool initialized;
   bool enabled;
@@ -168,6 +175,7 @@ private:
   bool hasSuccessfulSync;
   bool pendingCommandAvailable;
   bool acknowledgementPending;
+  bool realtimeConnected;
 
   float pendingCommandSetpoint;
   float acknowledgementSetpoint;
@@ -185,6 +193,8 @@ private:
   unsigned long lastSuccessMillis;
   unsigned long lastAttemptStartedMillis;
   unsigned long nextAttemptMillis;
+  unsigned long lastRealtimeAttemptMillis;
+  unsigned long lastRealtimeHeartbeatMillis;
 
   int lastHttpCode;
   Status status;
@@ -192,6 +202,8 @@ private:
   QueueHandle_t telemetryQueue;
   mutable SemaphoreHandle_t stateMutex;
   TaskHandle_t workerTask;
+  esp_websocket_client_handle_t
+    realtimeClient;
   TelemetryJob workerJob;
   UBaseType_t minimumWorkerStackRemaining;
 
@@ -203,6 +215,21 @@ private:
   void sendTelemetry(
     const TelemetryJob& job
   );
+
+  static void realtimeEventEntry(
+    void* handlerArguments,
+    esp_event_base_t eventBase,
+    int32_t eventId,
+    void* eventData
+  );
+
+  void updateRealtimeConnection();
+  void stopRealtimeConnection();
+  void handleRealtimeEvent(
+    int32_t eventId,
+    esp_websocket_event_data_t* eventData
+  );
+  String buildRealtimeUrl() const;
 
   void completeRequest(
     bool success,
