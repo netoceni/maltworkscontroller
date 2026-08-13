@@ -25,6 +25,8 @@ idf_component_register(
     REQUIRES
         arduino-esp32
         esp_websocket_client
+        esp_https_ota
+        app_update
         nvs_flash
         onewire
         dallas_temperature

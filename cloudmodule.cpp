@@ -4,6 +4,9 @@
 #include <esp_event.h>
 #include <esp_system.h>
 #include <esp_websocket_client.h>
+#include <esp_https_ota.h>
+#include <esp_ota_ops.h>
+#include <esp_app_desc.h>
 #include <inttypes.h>
 #include <cmath>
 #include <nvs.h>
@@ -48,6 +51,7 @@ CloudModule::CloudModule(
   realtimeUrl(""),
   realtimeHeaders(""),
   realtimeMessageBuffer(""),
+  bootOtaAssignment(""),
   initialized(false),
   enabled(false),
   requestInProgress(false),
@@ -55,6 +59,8 @@ CloudModule::CloudModule(
   pendingCommandAvailable(false),
   acknowledgementPending(false),
   realtimeConnected(false),
+  otaInProgress(false),
+  bootOtaReported(false),
   pendingCommandSetpoint(0.0f),
   acknowledgementSetpoint(0.0f),
   pendingCommandExpiresAt(0),
@@ -69,11 +75,13 @@ CloudModule::CloudModule(
   nextAttemptMillis(0),
   lastRealtimeAttemptMillis(0),
   lastRealtimeHeartbeatMillis(0),
+  lastOtaCheckMillis(0),
   lastHttpCode(0),
   status(Status::CLOUD_DISABLED),
   telemetryQueue(nullptr),
   stateMutex(nullptr),
   workerTask(nullptr),
+  otaTask(nullptr),
   realtimeClient(nullptr),
   workerJob({}),
   minimumWorkerStackRemaining(
@@ -182,6 +190,12 @@ bool CloudModule::begin() {
     salvamento feito pela interface web.
   */
   storage.end();
+
+  Preferences otaState;
+  if (otaState.begin("mwota", true)) {
+    bootOtaAssignment = otaState.getString("assignment", "");
+    otaState.end();
+  }
 
   /*
     A partir da 5.0.3, a configuracao operacional fica
@@ -379,12 +393,62 @@ void CloudModule::update() {
 
   updateRealtimeConnection();
 
-  if (busy) {
-    return;
+  if (
+    !bootOtaReported &&
+    isValidOtaAssignmentId(bootOtaAssignment)
+  ) {
+    reportOtaEvent(
+      bootOtaAssignment,
+      "validating",
+      100,
+      "Novo firmware iniciou e passou pelo autoteste local."
+    );
+    bootOtaReported = true;
+    Preferences otaState;
+    if (otaState.begin("mwota", false)) {
+      otaState.clear();
+      otaState.end();
+    }
   }
 
   unsigned long currentTime =
     millis();
+
+  lockState();
+  bool otaBusy = otaInProgress;
+  TaskHandle_t currentOtaTask = otaTask;
+  unlockState();
+
+  if (
+    !otaBusy &&
+    currentOtaTask == nullptr &&
+    !profile.isActive() &&
+    currentTime - lastOtaCheckMillis >=
+      OTA_CHECK_INTERVAL_SECONDS * 1000UL
+  ) {
+    lastOtaCheckMillis = currentTime;
+    BaseType_t created = xTaskCreate(
+      otaTaskEntry,
+      "mw-ota",
+      16UL * 1024UL,
+      this,
+      1,
+      &otaTask
+    );
+
+    if (created != pdPASS) {
+      lockState();
+      otaTask = nullptr;
+      unlockState();
+    }
+    return;
+  }
+
+  if (otaBusy) return;
+
+  if (busy) {
+    return;
+  }
 
   if (
     static_cast<long>(
@@ -797,6 +861,13 @@ bool CloudModule::
 isRequestInProgress() const {
   lockState();
   bool value = requestInProgress;
+  unlockState();
+  return value;
+}
+
+bool CloudModule::isOtaInProgress() const {
+  lockState();
+  bool value = otaInProgress;
   unlockState();
   return value;
 }
@@ -1296,6 +1367,195 @@ String CloudModule::buildRealtimeUrl() const {
   }
 
   return url + "/v1/device/realtime";
+}
+
+String CloudModule::buildOtaUrl() const {
+  String url = telemetryUrl;
+  int schemeEnd = url.indexOf("://");
+  int pathStart = url.indexOf('/', schemeEnd + 3);
+  if (pathStart >= 0) url = url.substring(0, pathStart);
+  return url + "/v1/device/ota";
+}
+
+void CloudModule::otaTaskEntry(void* parameter) {
+  CloudModule* module = static_cast<CloudModule*>(parameter);
+  module->otaLoop();
+  module->lockState();
+  module->otaTask = nullptr;
+  module->unlockState();
+  vTaskDelete(nullptr);
+}
+
+void CloudModule::otaLoop() {
+  checkForOtaUpdate();
+}
+
+bool CloudModule::checkForOtaUpdate() {
+  String url = buildOtaUrl();
+  String token;
+  lockState();
+  token = deviceToken;
+  unlockState();
+
+  if (url.length() == 0 || token.length() != TOKEN_HEX_LENGTH) return false;
+
+  WiFiClientSecure client;
+  client.setCACert(MALTWORKS_CLOUD_ROOT_CA);
+  HTTPClient http;
+  if (!http.begin(client, url)) return false;
+  http.setTimeout(15000);
+  http.addHeader("Authorization", "Bearer " + token);
+  http.addHeader("X-Maltworks-Device-ID", deviceId);
+  http.addHeader("X-Maltworks-Firmware", FirmwareInfo::VERSION);
+  int httpCode = http.GET();
+  if (httpCode != HTTP_CODE_OK) {
+    http.end();
+    return false;
+  }
+  String response = http.getString();
+  http.end();
+  if (response.indexOf("\"update\":null") >= 0) return true;
+
+  String assignmentId;
+  String targetVersion;
+  String product;
+  String boardFamily;
+  String downloadUrl;
+  if (
+    !extractJsonString(response, "id", assignmentId) ||
+    !extractJsonString(response, "targetVersion", targetVersion) ||
+    !extractJsonString(response, "product", product) ||
+    !extractJsonString(response, "boardFamily", boardFamily) ||
+    !extractJsonString(response, "downloadUrl", downloadUrl) ||
+    !isValidOtaAssignmentId(assignmentId) ||
+    product != FirmwareInfo::PRODUCT ||
+    boardFamily != FirmwareInfo::BOARD_FAMILY ||
+    targetVersion == FirmwareInfo::VERSION ||
+    !downloadUrl.startsWith("https://")
+  ) {
+    return false;
+  }
+  return installOtaUpdate(assignmentId, targetVersion, downloadUrl);
+}
+
+bool CloudModule::installOtaUpdate(
+  const String& assignmentId,
+  const String& targetVersion,
+  const String& downloadUrl
+) {
+  lockState();
+  otaInProgress = true;
+  unlockState();
+
+  relays.allOff();
+  stopRealtimeConnection();
+  reportOtaEvent(assignmentId, "downloading", 0, "Download iniciado.");
+
+  esp_http_client_config_t httpConfig = {};
+  httpConfig.url = downloadUrl.c_str();
+  httpConfig.cert_pem = MALTWORKS_CLOUD_ROOT_CA;
+  httpConfig.timeout_ms = 30000;
+  httpConfig.keep_alive_enable = true;
+  httpConfig.user_data = this;
+
+  esp_https_ota_config_t otaConfig = {};
+  otaConfig.http_config = &httpConfig;
+  otaConfig.http_client_init_cb = configureOtaHttpClient;
+
+  esp_https_ota_handle_t handle = nullptr;
+  esp_err_t result = esp_https_ota_begin(&otaConfig, &handle);
+  if (result != ESP_OK) {
+    reportOtaEvent(assignmentId, "failed", 0, esp_err_to_name(result));
+    lockState(); otaInProgress = false; unlockState();
+    return false;
+  }
+
+  esp_app_desc_t appDescription = {};
+  result = esp_https_ota_get_img_desc(handle, &appDescription);
+  if (
+    result != ESP_OK ||
+    String(appDescription.project_name) != "maltworks_controller" ||
+    String(appDescription.version) != targetVersion
+  ) {
+    esp_https_ota_abort(handle);
+    reportOtaEvent(assignmentId, "failed", 0, "Imagem incompativel com o controlador.");
+    lockState(); otaInProgress = false; unlockState();
+    return false;
+  }
+
+  int lastProgress = -1;
+  while ((result = esp_https_ota_perform(handle)) == ESP_ERR_HTTPS_OTA_IN_PROGRESS) {
+    int total = esp_https_ota_get_image_size(handle);
+    int read = esp_https_ota_get_image_len_read(handle);
+    int progress = total > 0 ? min(99, (read * 100) / total) : 0;
+    if (progress >= lastProgress + 5) {
+      lastProgress = progress;
+      reportOtaEvent(assignmentId, "downloading", static_cast<uint8_t>(progress));
+    }
+    delay(1);
+  }
+
+  if (result == ESP_OK && esp_https_ota_is_complete_data_received(handle)) {
+    reportOtaEvent(assignmentId, "installing", 100, "Validando imagem assinada.");
+    result = esp_https_ota_finish(handle);
+  } else {
+    esp_https_ota_abort(handle);
+  }
+
+  if (result != ESP_OK) {
+    reportOtaEvent(assignmentId, "failed", static_cast<uint8_t>(max(lastProgress, 0)), esp_err_to_name(result));
+    lockState(); otaInProgress = false; unlockState();
+    return false;
+  }
+
+  Preferences otaState;
+  if (otaState.begin("mwota", false)) {
+    otaState.putString("assignment", assignmentId);
+    otaState.putString("target", targetVersion);
+    otaState.putString("source", FirmwareInfo::VERSION);
+    otaState.end();
+  }
+  reportOtaEvent(assignmentId, "rebooting", 100, "Firmware instalado; reiniciando.");
+  delay(800);
+  esp_restart();
+  return true;
+}
+
+void CloudModule::reportOtaEvent(
+  const String& assignmentId,
+  const String& eventStatus,
+  uint8_t progress,
+  const String& message
+) {
+  String base = buildOtaUrl();
+  String url = base + "/" + assignmentId + "/events";
+  String token;
+  lockState(); token = deviceToken; unlockState();
+  WiFiClientSecure client;
+  client.setCACert(MALTWORKS_CLOUD_ROOT_CA);
+  HTTPClient http;
+  if (!http.begin(client, url)) return;
+  http.setTimeout(10000);
+  http.addHeader("Content-Type", "application/json");
+  http.addHeader("Authorization", "Bearer " + token);
+  http.addHeader("X-Maltworks-Device-ID", deviceId);
+  String body = "{\"status\":\"" + eventStatus + "\",\"progress\":" + String(progress) +
+    ",\"message\":\"" + jsonEscape(message) + "\"}";
+  http.POST(body);
+  http.end();
+}
+
+esp_err_t CloudModule::configureOtaHttpClient(
+  esp_http_client_handle_t client
+) {
+  void* userData = nullptr;
+  if (esp_http_client_get_user_data(client, &userData) != ESP_OK || userData == nullptr) return ESP_FAIL;
+  CloudModule* module = static_cast<CloudModule*>(userData);
+  String authorization = "Bearer " + module->deviceToken;
+  esp_http_client_set_header(client, "Authorization", authorization.c_str());
+  esp_http_client_set_header(client, "X-Maltworks-Device-ID", module->deviceId.c_str());
+  esp_http_client_set_header(client, "X-Maltworks-Firmware", FirmwareInfo::VERSION);
+  return ESP_OK;
 }
 
 void CloudModule::completeRequest(
@@ -2635,6 +2895,20 @@ bool CloudModule::isValidCommandId(
     }
   }
 
+  return true;
+}
+
+bool CloudModule::isValidOtaAssignmentId(
+  const String& assignmentId
+) const {
+  if (
+    assignmentId.length() != 37 ||
+    !assignmentId.startsWith("otaj_")
+  ) return false;
+  for (size_t index = 5; index < assignmentId.length(); index++) {
+    char character = assignmentId[index];
+    if (!((character >= '0' && character <= '9') || (character >= 'a' && character <= 'f'))) return false;
+  }
   return true;
 }
 

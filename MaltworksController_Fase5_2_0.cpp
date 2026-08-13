@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include <Wire.h>
 #include <math.h>
+#include <esp_ota_ops.h>
 
 #include "displaymodule.h"
 #include "temperaturemodule.h"
@@ -660,6 +661,25 @@ void setup() {
   }
 
   Serial.println("==============================");
+
+  const esp_partition_t* runningPartition =
+    esp_ota_get_running_partition();
+  esp_ota_img_states_t imageState;
+  if (
+    esp_ota_get_state_partition(
+      runningPartition,
+      &imageState
+    ) == ESP_OK &&
+    imageState == ESP_OTA_IMG_PENDING_VERIFY
+  ) {
+    esp_err_t validationResult =
+      esp_ota_mark_app_valid_cancel_rollback();
+    Serial.println(
+      validationResult == ESP_OK
+        ? "Firmware OTA validado; rollback cancelado."
+        : "Falha ao confirmar firmware OTA."
+    );
+  }
 
   delay(1500);
 

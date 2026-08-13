@@ -8,6 +8,7 @@
 #include <freertos/semphr.h>
 #include <freertos/task.h>
 #include <esp_websocket_client.h>
+#include <esp_http_client.h>
 
 #include "alarmmodule.h"
 #include "clockmodule.h"
@@ -74,6 +75,7 @@ public:
   bool isConfigured() const;
   bool isOnline() const;
   bool isRequestInProgress() const;
+  bool isOtaInProgress() const;
 
   Status getStatus() const;
   const char* getStatusText() const;
@@ -100,6 +102,9 @@ private:
 
   static constexpr uint32_t
     REALTIME_HEARTBEAT_SECONDS = 10;
+
+  static constexpr uint32_t
+    OTA_CHECK_INTERVAL_SECONDS = 60;
 
   static constexpr size_t
     MAXIMUM_URL_LENGTH = 190;
@@ -168,6 +173,7 @@ private:
   String realtimeUrl;
   String realtimeHeaders;
   String realtimeMessageBuffer;
+  String bootOtaAssignment;
 
   bool initialized;
   bool enabled;
@@ -176,6 +182,8 @@ private:
   bool pendingCommandAvailable;
   bool acknowledgementPending;
   bool realtimeConnected;
+  bool otaInProgress;
+  bool bootOtaReported;
 
   float pendingCommandSetpoint;
   float acknowledgementSetpoint;
@@ -195,6 +203,7 @@ private:
   unsigned long nextAttemptMillis;
   unsigned long lastRealtimeAttemptMillis;
   unsigned long lastRealtimeHeartbeatMillis;
+  unsigned long lastOtaCheckMillis;
 
   int lastHttpCode;
   Status status;
@@ -202,6 +211,7 @@ private:
   QueueHandle_t telemetryQueue;
   mutable SemaphoreHandle_t stateMutex;
   TaskHandle_t workerTask;
+  TaskHandle_t otaTask;
   esp_websocket_client_handle_t
     realtimeClient;
   TelemetryJob workerJob;
@@ -230,6 +240,25 @@ private:
     esp_websocket_event_data_t* eventData
   );
   String buildRealtimeUrl() const;
+  String buildOtaUrl() const;
+
+  static void otaTaskEntry(void* parameter);
+  void otaLoop();
+  bool checkForOtaUpdate();
+  bool installOtaUpdate(
+    const String& assignmentId,
+    const String& targetVersion,
+    const String& downloadUrl
+  );
+  void reportOtaEvent(
+    const String& assignmentId,
+    const String& eventStatus,
+    uint8_t progress,
+    const String& message = ""
+  );
+  static esp_err_t configureOtaHttpClient(
+    esp_http_client_handle_t client
+  );
 
   void completeRequest(
     bool success,
@@ -266,6 +295,9 @@ private:
 
   bool isValidCommandId(
     const String& commandId
+  ) const;
+  bool isValidOtaAssignmentId(
+    const String& assignmentId
   ) const;
 
   bool extractJsonString(
