@@ -7,6 +7,13 @@ comportamento existente durante a migração, o Arduino Core 3.3.11 é usado com
 componente do ESP-IDF. Os módulos serão convertidos gradualmente para APIs
 nativas, sem trocar todo o firmware de uma só vez.
 
+## Validação de bancada
+
+A revisão `4693754` permaneceu em execução contínua em breadboard por dois dias,
+até 13 de agosto de 2026, sem instabilidade observada. Este registro representa
+uma validação funcional de bancada e não substitui os ensaios necessários para
+uso comercial.
+
 No VS Code:
 
 1. abra uma pasta de caminho curto, por exemplo `C:\Projetos\maltworkscontroller`;
