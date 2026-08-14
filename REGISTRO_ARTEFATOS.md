@@ -37,7 +37,7 @@ campanha piloto separada.
 | Menor partição OTA | 1.966.080 bytes (`0x1e0000`) |
 | Espaço livre | 631.680 bytes (`0x9a380`, 32%) |
 | SHA-256 | `0d2f40ec32099ed97f72db9a1b829db59cfc7708870b9eafcdb07a265940fc7b` |
-| Estado de distribuição | Publicado no catálogo; aguardando teste em um controlador piloto |
+| Estado de distribuição | Publicado no catálogo; teste OTA piloto confirmado com sucesso em 2026-08-14 |
 
 ### Procedimento mínimo para próximos registros
 
