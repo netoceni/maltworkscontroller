@@ -33,6 +33,14 @@ namespace FirmwareInfo {
       "\"phase\":\"Fase5_5_1\"}"
       ":MALTWORKS_FW_META_END";
 
+  /*
+    A referencia volatil cria uma dependencia real da funcao que publica os
+    metadados para o marcador. Isso impede que o linker descarte o texto
+    embarcado ao eliminar secoes nao referenciadas.
+  */
+  const char* volatile METADATA_MARKER_REFERENCE =
+    METADATA_MARKER;
+
   String getMetadataJson() {
     String json;
 
@@ -62,10 +70,11 @@ namespace FirmwareInfo {
       Como esta funcao e chamada pelo firmware,
       o linker nao pode remover o bloco.
     */
+    const char* marker =
+      METADATA_MARKER_REFERENCE;
+
     volatile size_t markerLength =
-      strlen_P(
-        METADATA_MARKER
-      );
+      strlen_P(marker);
 
     (void)markerLength;
 
