@@ -184,3 +184,81 @@ bool SettingsModule::clearWifiCredentials() {
 
   return true;
 }
+
+
+#include <esp_system.h>
+#include <mbedtls/md.h>
+#include <mbedtls/pkcs5.h>
+#include <string.h>
+
+bool SettingsModule::deriveLocalPassword(
+  const String& password,
+  const uint8_t salt[LOCAL_AUTH_SALT_SIZE],
+  uint8_t hash[LOCAL_AUTH_HASH_SIZE]
+) {
+  const mbedtls_md_info_t* md =
+    mbedtls_md_info_from_type(MBEDTLS_MD_SHA256);
+  if (!md) return false;
+  mbedtls_md_context_t context;
+  mbedtls_md_init(&context);
+  if (mbedtls_md_setup(&context, md, 1) != 0) {
+    mbedtls_md_free(&context);
+    return false;
+  }
+  int result = mbedtls_pkcs5_pbkdf2_hmac(
+    &context,
+    reinterpret_cast<const unsigned char*>(password.c_str()),
+    password.length(),
+    salt,
+    LOCAL_AUTH_SALT_SIZE,
+    LOCAL_AUTH_ITERATIONS,
+    LOCAL_AUTH_HASH_SIZE,
+    hash
+  );
+  mbedtls_md_free(&context);
+  return result == 0;
+}
+
+bool SettingsModule::hasLocalPassword() {
+  return initialized &&
+    preferences.getBytesLength(LOCAL_AUTH_SALT_KEY) == LOCAL_AUTH_SALT_SIZE &&
+    preferences.getBytesLength(LOCAL_AUTH_HASH_KEY) == LOCAL_AUTH_HASH_SIZE;
+}
+
+bool SettingsModule::saveLocalPassword(const String& password) {
+  if (!initialized || hasLocalPassword() ||
+      password.length() < 12 || password.length() > 64) return false;
+
+  uint8_t salt[LOCAL_AUTH_SALT_SIZE];
+  uint8_t hash[LOCAL_AUTH_HASH_SIZE];
+  esp_fill_random(salt, sizeof(salt));
+  if (!deriveLocalPassword(password, salt, hash)) return false;
+
+  // Gravacao de salt antes de hash: estado parcial nunca libera autenticacao.
+  if (preferences.putBytes(LOCAL_AUTH_SALT_KEY, salt, sizeof(salt)) != sizeof(salt)) return false;
+  if (preferences.putBytes(LOCAL_AUTH_HASH_KEY, hash, sizeof(hash)) != sizeof(hash)) {
+    preferences.remove(LOCAL_AUTH_SALT_KEY);
+    return false;
+  }
+  return true;
+}
+
+bool SettingsModule::verifyLocalPassword(const String& password) {
+  if (!hasLocalPassword()) return false;
+  uint8_t salt[LOCAL_AUTH_SALT_SIZE];
+  uint8_t expected[LOCAL_AUTH_HASH_SIZE];
+  uint8_t actual[LOCAL_AUTH_HASH_SIZE];
+  if (preferences.getBytes(LOCAL_AUTH_SALT_KEY, salt, sizeof(salt)) != sizeof(salt) ||
+      preferences.getBytes(LOCAL_AUTH_HASH_KEY, expected, sizeof(expected)) != sizeof(expected) ||
+      !deriveLocalPassword(password, salt, actual)) return false;
+  uint8_t difference = 0;
+  for (size_t i = 0; i < sizeof(actual); i++) difference |= actual[i] ^ expected[i];
+  return difference == 0;
+}
+
+bool SettingsModule::clearLocalPassword() {
+  if (!initialized) return false;
+  preferences.remove(LOCAL_AUTH_HASH_KEY);
+  preferences.remove(LOCAL_AUTH_SALT_KEY);
+  return !hasLocalPassword();
+}
