@@ -196,17 +196,10 @@ bool SettingsModule::deriveLocalPassword(
   const uint8_t salt[LOCAL_AUTH_SALT_SIZE],
   uint8_t hash[LOCAL_AUTH_HASH_SIZE]
 ) {
-  const mbedtls_md_info_t* md =
-    mbedtls_md_info_from_type(MBEDTLS_MD_SHA256);
-  if (!md) return false;
-  mbedtls_md_context_t context;
-  mbedtls_md_init(&context);
-  if (mbedtls_md_setup(&context, md, 1) != 0) {
-    mbedtls_md_free(&context);
-    return false;
-  }
-  int result = mbedtls_pkcs5_pbkdf2_hmac(
-    &context,
+  // ESP-IDF 5.5 / Mbed TLS 3: a variante antiga baseada no
+  // mbedtls_md_context_t nao esta mais disponivel.
+  return mbedtls_pkcs5_pbkdf2_hmac_ext(
+    MBEDTLS_MD_SHA256,
     reinterpret_cast<const unsigned char*>(password.c_str()),
     password.length(),
     salt,
@@ -214,9 +207,7 @@ bool SettingsModule::deriveLocalPassword(
     LOCAL_AUTH_ITERATIONS,
     LOCAL_AUTH_HASH_SIZE,
     hash
-  );
-  mbedtls_md_free(&context);
-  return result == 0;
+  ) == 0;
 }
 
 bool SettingsModule::hasLocalPassword() {
