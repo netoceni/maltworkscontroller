@@ -92,7 +92,7 @@ private:
       "https://api.maltworks.com.br/v1/telemetry";
 
   static constexpr uint32_t
-    DEFAULT_INTERVAL_SECONDS = 5;
+    DEFAULT_INTERVAL_SECONDS = 30;
 
   static constexpr uint32_t
     MINIMUM_INTERVAL_SECONDS = 5;
@@ -101,7 +101,7 @@ private:
     MAXIMUM_INTERVAL_SECONDS = 3600;
 
   static constexpr uint32_t
-    REALTIME_HEARTBEAT_SECONDS = 10;
+    REALTIME_HEARTBEAT_SECONDS = 30;
 
   static constexpr uint32_t
     OTA_CHECK_INTERVAL_SECONDS = 60;
