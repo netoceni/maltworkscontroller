@@ -50,6 +50,12 @@ public:
 
   bool clearWifiCredentials();
 
+  // Senha administrativa local; nunca armazenar texto puro.
+  bool hasLocalPassword();
+  bool saveLocalPassword(const String& password);
+  bool verifyLocalPassword(const String& password);
+  bool clearLocalPassword(); // Recuperacao apenas por acao fisica.
+
 private:
   Preferences preferences;
   bool initialized;
@@ -77,6 +83,29 @@ private:
   static constexpr const char*
     WIFI_PASSWORD_KEY =
       "wifi_pass";
+
+  static constexpr const char*
+    LOCAL_AUTH_SALT_KEY =
+      "auth_salt";
+
+  static constexpr const char*
+    LOCAL_AUTH_HASH_KEY =
+      "auth_hash";
+
+  static constexpr uint32_t
+    LOCAL_AUTH_ITERATIONS = 12000;
+
+  static constexpr size_t
+    LOCAL_AUTH_SALT_SIZE = 16;
+
+  static constexpr size_t
+    LOCAL_AUTH_HASH_SIZE = 32;
+
+  static bool deriveLocalPassword(
+    const String& password,
+    const uint8_t salt[LOCAL_AUTH_SALT_SIZE],
+    uint8_t hash[LOCAL_AUTH_HASH_SIZE]
+  );
 };
 
 #endif
